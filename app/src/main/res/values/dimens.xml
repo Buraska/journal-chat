@@ -2,4 +2,5 @@
 <resources>
     <dimen name="padding_medium">16dp</dimen>
     <dimen name="spacer_medium">8dp</dimen>
+    <dimen name="card_elevation">2dp</dimen>
 </resources>

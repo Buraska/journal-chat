@@ -19,9 +19,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -75,6 +78,16 @@ fun ChatList(
     }
 }
 
+@Composable
+fun SearchButton(){
+    IconButton(onClick = { /*TODO*/ }) {
+        Icon(
+            imageVector = Icons.Outlined.Search, contentDescription = stringResource(
+                R.string.search
+            )
+        )
+    }
+}
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatListScreen(
@@ -91,7 +104,8 @@ fun ChatListScreen(
         topBar = {TopAppBar(
             title = stringResource(id = R.string.app_name),
             navIcon = topBarNavIcon,
-            topAppBarScrollBehavior = scrollBehavior
+            topAppBarScrollBehavior = scrollBehavior,
+            action = {SearchButton()}
         )},
         bottomBar = { },
         modifier = modifier

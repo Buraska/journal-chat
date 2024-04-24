@@ -99,20 +99,14 @@ fun TopAppBar(
     title: String,
     navIcon: @Composable () -> Unit,
     topAppBarScrollBehavior: TopAppBarScrollBehavior,
+    action: @Composable () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     CenterAlignedTopAppBar(
         title = { Text(text = title, style = Typography.displayLarge) },
         navigationIcon = navIcon,
-        actions = {
-            IconButton(onClick = { /*TODO*/ }) {
-                Icon(
-                    imageVector = Icons.Outlined.Search, contentDescription = stringResource(
-                        R.string.search
-                    )
-                )
-            }
-        },
+        actions ={action()
+            },
         scrollBehavior = topAppBarScrollBehavior,
         modifier = modifier
     )

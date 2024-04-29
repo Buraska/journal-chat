@@ -85,6 +85,7 @@ fun JournalChatTheme(
 
   MaterialTheme(
     colorScheme = colors,
-    content = content
+    content = content,
+      shapes = Shapes
   )
 }

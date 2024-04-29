@@ -12,16 +12,14 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -29,10 +27,6 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,14 +36,12 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.journalchat.AppBarNavigationIconBack
 import com.example.journalchat.FloatingBottomButton
 import com.example.journalchat.R
 import com.example.journalchat.TopAppBar
-import com.example.journalchat.models.Chat
 import com.example.journalchat.ui.events.CreateChatEvent
 import com.example.journalchat.ui.theme.Shapes
 import com.example.journalchat.ui.viewModels.CreateChatViewModel
@@ -57,8 +49,8 @@ import com.example.journalchat.ui.viewModels.CreateChatViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CreateChatScreen(
-    topBarNavIcon: @Composable () -> Unit,
+fun ChatCreationScreen(
+    navigateUp: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: CreateChatViewModel = viewModel()
 ) {
@@ -69,11 +61,17 @@ fun CreateChatScreen(
         topBar = {
             TopAppBar(
                 title = stringResource(id = R.string.app_name),
-                navIcon = topBarNavIcon,
+                navIcon = {AppBarNavigationIconBack { navigateUp() } },
                 topAppBarScrollBehavior = scrollBehavior,
                 action = {}
             )
         },
+        floatingActionButton = {FloatingBottomButton(
+            imageVector = Icons.Outlined.Check,
+            buttonDescription = stringResource(R.string.create_chat),
+            isVisible = true,
+            onClick = { if (viewModel.onEvent(CreateChatEvent.Submit)) { navigateUp() } },
+        )},
         bottomBar = { },
         modifier = modifier
             .fillMaxSize()
@@ -84,28 +82,20 @@ fun CreateChatScreen(
                 .fillMaxSize()
                 .padding(it)
         ) {
-            CreateChat(
+            ChatCreation(
                 chatState.name,
                 { inputText -> viewModel.onEvent(CreateChatEvent.NameChanged(inputText)) },
                 errorMessage = chatState.nameError,
                 modifier = Modifier
             )
-            FloatingBottomButton(
-                imageVector = Icons.Outlined.Check,
-                buttonDescription = stringResource(R.string.create_chat),
-                isVisible = true,
-                onClick = {
-                    viewModel.onEvent(CreateChatEvent.Submit)
-                },
-                Modifier.align(Alignment.BottomEnd)
-            )
+
         }
     }
 }
 
 
 @Composable
-fun CreateChat(
+fun ChatCreation(
     inputHolder: String,
     onValueChange: (String) -> Unit,
     errorMessage: String? = "asda",
@@ -161,8 +151,12 @@ fun CreateChat(
 
 }
 
+/*
 @Composable
 @Preview
 fun PreviewAddChat(modifier: Modifier = Modifier) {
-    CreateChatScreen(topBarNavIcon = { /*TODO*/ })
+    CreateChatScreen(topBarNavIcon = { */
+/*TODO*//*
+ }, navigateUp = navigateUp)
 }
+*/

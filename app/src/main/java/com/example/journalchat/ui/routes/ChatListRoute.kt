@@ -8,16 +8,17 @@ import com.example.journalchat.ChatViewModel
 import com.example.journalchat.ui.ChatListScreen
 
 @Composable
-
 fun ChatListRoute(
-    viewModel: ChatViewModel = viewModel(),
-    topBarNavIcon: @Composable () -> Unit,
-    onCreateButton: () -> Unit
+    exposeDrawer: () -> Unit,
+    onCreateButton: () -> Unit,
+    onItemClicked: (String) -> Unit,
+    viewModel: ChatViewModel = viewModel()
 ){
-    val appState by viewModel.appState.collectAsState()
+    val appState by viewModel.chatListState.collectAsState()
 
     ChatListScreen(
         chatList = appState.chats,
-        topBarNavIcon = topBarNavIcon,
+        exposeDrawer = exposeDrawer,
+        onItemClicked = onItemClicked,
         onButtonClick = onCreateButton)
 }

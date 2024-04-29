@@ -31,7 +31,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.ComposableTarget
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -48,6 +47,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.journalchat.AppBarNavigationDrawer
 import com.example.journalchat.FloatingBottomButton
 import com.example.journalchat.R
 import com.example.journalchat.TopAppBar
@@ -57,12 +57,53 @@ import com.example.journalchat.ui.theme.JournalChatTheme
 import com.example.journalchat.ui.theme.Shapes
 import com.example.journalchat.ui.theme.Typography
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ChatListScreen(
+    chatList: List<Chat>,
+    onButtonClick: () -> Unit,
+    exposeDrawer:  () -> Unit,
+    onItemClicked: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
+    var isVisible by remember { mutableStateOf(false) }
+    isVisible = scrollBehavior.state.collapsedFraction < 0.3
+
+    Scaffold(
+        topBar = {TopAppBar(
+            title = stringResource(id = R.string.app_name),
+            navIcon = {AppBarNavigationDrawer(exposeDrawer)},
+            topAppBarScrollBehavior = scrollBehavior,
+            action = {SearchButton()}
+        )},
+        bottomBar = { },
+        floatingActionButton = {            FloatingBottomButton(
+            imageVector = Icons.Outlined.Add,
+            buttonDescription = stringResource(R.string.create_chat),
+            isVisible = isVisible,
+            onClick = onButtonClick,
+        )},
+        modifier = modifier
+            .fillMaxSize()
+            .nestedScroll(scrollBehavior.nestedScrollConnection)
+    ){
+        Box(modifier = modifier
+            .fillMaxSize()
+            .padding(it)) {
+            ChatList(chatList, onItemClicked)
+
+        }
+    }
+}
+
 
 @Composable
 fun ChatList(
     chatList: List<Chat>,
-    contentPadding: PaddingValues = PaddingValues(0.dp),
-    modifier: Modifier = Modifier
+    onItemClicked: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(0.dp)
 ) {
 
 
@@ -72,7 +113,7 @@ fun ChatList(
         modifier = modifier
     ) {
         itemsIndexed(chatList) { index, chat ->
-            ChatItem(chatItem = chat)
+            ChatItem(chatItem = chat, onItemClicked = onItemClicked)
         }
 
     }
@@ -88,47 +129,14 @@ fun SearchButton(){
         )
     }
 }
-@OptIn(ExperimentalMaterial3Api::class)
+
 @Composable
-fun ChatListScreen(
-    chatList: List<Chat>,
-    onButtonClick: () -> Unit,
-    topBarNavIcon: @Composable () -> Unit,
+fun ChatItem(
+    chatItem: Chat,
+    icon: Drawable? = null,
+    onItemClicked: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
-    var isVisible by remember { mutableStateOf(false) }
-    isVisible = scrollBehavior.state.collapsedFraction < 0.3
-
-    Scaffold(
-        topBar = {TopAppBar(
-            title = stringResource(id = R.string.app_name),
-            navIcon = topBarNavIcon,
-            topAppBarScrollBehavior = scrollBehavior,
-            action = {SearchButton()}
-        )},
-        bottomBar = { },
-        modifier = modifier
-            .fillMaxSize()
-            .nestedScroll(scrollBehavior.nestedScrollConnection)
-    ){
-    Box(modifier = modifier
-        .fillMaxSize()
-        .padding(it)) {
-        ChatList(chatList)
-        FloatingBottomButton(
-            imageVector = Icons.Outlined.Add,
-            buttonDescription = stringResource(R.string.create_chat),
-            isVisible = isVisible,
-            onClick = onButtonClick,
-            Modifier.align(Alignment.BottomEnd)
-        )
-    }
-    }
-}
-
-@Composable
-fun ChatItem(chatItem: Chat, icon: Drawable? = null, modifier: Modifier = Modifier) {
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -178,12 +186,13 @@ fun ChatItem(chatItem: Chat, icon: Drawable? = null, modifier: Modifier = Modifi
 
 @Composable
 @Preview(showBackground = true)
-fun ChatPreview() {
+fun ChatListPreview() {
 
 
     JournalChatTheme(useDarkTheme = true) {
         ChatList(
             chatList = Data.chatList,
+            onItemClicked = {},
             modifier = Modifier.background(MaterialTheme.colorScheme.background)
         )
     }

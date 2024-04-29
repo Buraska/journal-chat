@@ -1,14 +1,12 @@
 package com.example.journalchat.ui.routes
 
 import androidx.compose.runtime.Composable
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.journalchat.ChatViewModel
-import com.example.journalchat.ui.CreateChatScreen
+import com.example.journalchat.ui.ChatCreationScreen
 
 @Composable
 fun CreateChatRoute(
-    topBarNavIcon: @Composable () -> Unit,
+    navigateUp: () -> Unit,
 ){
-    CreateChatScreen(
-        topBarNavIcon = topBarNavIcon,
+    ChatCreationScreen(
+        navigateUp = navigateUp,
     )}

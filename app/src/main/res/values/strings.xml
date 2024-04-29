@@ -8,4 +8,6 @@
     <string name="create_chat">Create chat</string>
     <string name="enter_chat_name">Enter chat name</string>
     <string name="back">Back</string>
+    <string name="chat">Chat</string>
+    <string name="stickers_and_emojis">Stickers and emojis</string>
 </resources>

@@ -1,5 +1,6 @@
 package com.example.journalchat
 
+import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.List
@@ -12,8 +13,17 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.journalchat.ui.ChatScreen
 import com.example.journalchat.ui.routes.ChatListRoute
+import com.example.journalchat.ui.routes.ChatRoute
 import com.example.journalchat.ui.routes.CreateChatRoute
+
+enum class JournalChatScreen(@StringRes val title: Int) {
+    Start(R.string.app_name),
+    CreateChat(R.string.create_chat),
+    Chat(R.string.chat)
+}
+
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -23,15 +33,21 @@ fun JournalNavHost(
 ) {
         NavHost(
             navController = navController,
-            startDestination = JournalChatScreen.Start.name,
+            startDestination = JournalChatScreen.Chat.name,
         ) {
+
+            //TODO Two different approaches to send navigation up function. Choose one
             composable(route = JournalChatScreen.Start.name) {
                 ChatListRoute(
                     onCreateButton =  { navController.navigate(JournalChatScreen.CreateChat.name) },
-                    topBarNavIcon = { AppBarNavigationDrawer(exposeDrawer = {})})
+                    exposeDrawer = { },
+                    onItemClicked = {})
             }
             composable(route = JournalChatScreen.CreateChat.name) {
-                CreateChatRoute(topBarNavIcon =  { AppBarNavigationIconBack(navigateUp = {navController.navigateUp()})})
+                CreateChatRoute(navigateUp =  {navController.navigateUp()})
+            }
+            composable(route = JournalChatScreen.Chat.name) {
+                ChatRoute(navigateUp = {navController.navigateUp()})
             }
         }
 }

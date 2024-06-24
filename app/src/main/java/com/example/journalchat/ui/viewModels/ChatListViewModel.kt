@@ -1,4 +1,4 @@
-package com.example.journalchat
+package com.example.journalchat.ui.viewModels
 
 import androidx.lifecycle.ViewModel
 import com.example.journalchat.ui.states.ChatListState
@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
-class ChatViewModel : ViewModel() {
+class ChatListViewModel : ViewModel() {
 
     private val _chatListState = MutableStateFlow(ChatListState(Data.chatList))
     val chatListState: StateFlow<ChatListState> = _chatListState.asStateFlow()
@@ -20,5 +20,5 @@ class ChatViewModel : ViewModel() {
         }
         _chatListState.update { currentState -> currentState.copy(chats = currentState.chats.apply { add(chat) })}
     }
-
+//https://chatgpt.com/c/167aeeea-2124-4990-98fc-baf750fb68c2
 }

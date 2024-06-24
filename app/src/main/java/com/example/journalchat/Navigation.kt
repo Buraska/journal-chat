@@ -1,10 +1,8 @@
 package com.example.journalchat
 
-import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.List
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
@@ -13,43 +11,47 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.journalchat.ui.ChatScreen
 import com.example.journalchat.ui.routes.ChatListRoute
 import com.example.journalchat.ui.routes.ChatRoute
 import com.example.journalchat.ui.routes.CreateChatRoute
 
-enum class JournalChatScreen(@StringRes val title: Int) {
-    Start(R.string.app_name),
-    CreateChat(R.string.create_chat),
-    Chat(R.string.chat)
+enum class JournalChatScreen(val title: String) {
+    Start("start"),
+    CreateChat("create_chat"),
+    Chat("chat/{chatId}")
 }
 
 
 
-@OptIn(ExperimentalMaterial3Api::class)
+
 @Composable
 fun JournalNavHost(
     navController: NavHostController = rememberNavController()
 ) {
         NavHost(
             navController = navController,
-            startDestination = JournalChatScreen.Chat.name,
+            startDestination = JournalChatScreen.Chat.title,
         ) {
 
-            //TODO Two different approaches to send navigation up function. Choose one
-            composable(route = JournalChatScreen.Start.name) {
+            composable(route = JournalChatScreen.Start.title) {
                 ChatListRoute(
-                    onCreateButton =  { navController.navigate(JournalChatScreen.CreateChat.name) },
+                    onCreateButton =  { navController.navigate(JournalChatScreen.CreateChat.title) },
                     exposeDrawer = { },
-                    onItemClicked = {})
+                    onItemClicked = {chatName -> navController.navigate("chat/$chatName") })
             }
-            composable(route = JournalChatScreen.CreateChat.name) {
-                CreateChatRoute(navigateUp =  {navController.navigateUp()})
+            composable(route = JournalChatScreen.CreateChat.title) {
+                CreateChatRoute(navigateUp =  { navController.navigateUpOrAtHome()})
             }
-            composable(route = JournalChatScreen.Chat.name) {
-                ChatRoute(navigateUp = {navController.navigateUp()})
+            composable(route = JournalChatScreen.Chat.title) {
+                ChatRoute(navigateUp = { navController.navigateUpOrAtHome()}, it.arguments?.getString("chatName"))
             }
         }
+}
+
+fun NavHostController.navigateUpOrAtHome(){
+    if (!this.popBackStack()){
+        this.navigate(JournalChatScreen.Start.name)
+    }
 }
 
 @Composable

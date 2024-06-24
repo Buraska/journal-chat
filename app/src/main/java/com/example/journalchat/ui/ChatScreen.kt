@@ -1,5 +1,6 @@
 package com.example.journalchat.ui
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -78,18 +79,19 @@ import com.example.journalchat.ui.theme.primaryMessageShape
 import com.example.journalchat.ui.viewModels.ChatViewModel
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import kotlin.math.log
 
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ChatScreen(
-    chatState: ChatState,
     navigateUp: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ChatViewModel = viewModel()
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
     val scrollState = rememberLazyListState()
+    val chatState by viewModel.chatState.c
     Scaffold(
         topBar = {
             TopAppBar(
@@ -102,7 +104,7 @@ fun ChatScreen(
         bottomBar = { },
         modifier = modifier
             .nestedScroll(scrollBehavior.nestedScrollConnection),
-        contentWindowInsets = WindowInsets(0, 0, 0, 0)
+        contentWindowInsets = WindowInsets(0, 0, 0, 0) // remove additional insets to deal with inputText field.
     ) {
         Column(
             modifier = modifier
@@ -114,8 +116,9 @@ fun ChatScreen(
             InputTextField(
                 value = viewModel.chatState.input,
                 onValueChange = { input -> viewModel.onEvent(ChatEvent.InputChanged(input)) },
+                onSendMessage = { Log.i("SENDING MESSAGE", Message(viewModel.chatState.input, true, LocalDateTime.now()).toString());
+                    viewModel.onEvent(ChatEvent.SendMessage(Message(viewModel.chatState.input, true, LocalDateTime.now())))},
                 modifier = Modifier
-
             )
         }
     }
@@ -244,7 +247,7 @@ fun Message(message: Message, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun InputTextField(value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier) {
+fun InputTextField(value: String, onValueChange: (String) -> Unit, onSendMessage:() -> Unit, modifier: Modifier = Modifier) {
 
     Surface(
         contentColor = MaterialTheme.colorScheme.inverseSurface,
@@ -284,10 +287,10 @@ fun InputTextField(value: String, onValueChange: (String) -> Unit, modifier: Mod
                     contentDescription = stringResource(R.string.stickers_and_emojis)
                 )
             }
-            IconButton(onClick = { /*TODO*/ }) {
+            IconButton(onClick = onSendMessage) {
                 Icon(
                     imageVector = Icons.Outlined.Phone,
-                    contentDescription = stringResource(R.string.stickers_and_emojis)
+                    contentDescription = stringResource(R.string.send_message)
                 )
             }
         }

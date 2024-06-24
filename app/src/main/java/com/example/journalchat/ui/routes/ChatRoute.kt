@@ -1,31 +1,25 @@
 package com.example.journalchat.ui.routes
 
+import android.util.Log
 import androidx.compose.runtime.Composable
-import com.example.journalchat.models.Message
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.journalchat.data.Data
+import com.example.journalchat.models.Chat
 import com.example.journalchat.ui.ChatScreen
+import com.example.journalchat.ui.events.ChatEvent
 import com.example.journalchat.ui.states.ChatState
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
+import com.example.journalchat.ui.viewModels.ChatViewModel
 
 @Composable
-fun ChatRoute(navigateUp: () -> Unit) {
-    val messages = listOf<Message>(
-        Message("Starting: Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] cmp=com.example.journalchat/.MainActivity }",
-            dateTime = LocalDateTime.parse("2012-12-24 12:24:35", DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))),
-        Message("Starting: =NCH"),
-        Message("Starting: Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] cmp=com.example.journalchat/.MainActivity }"),
-        Message("Startinge.journalchat/.MainActivity }",
-            isPrimary = false),
-        Message("ASD most often refers to: Autism spectrum disorder, a neurodevelopmental condition. Читать ещё"),
-        Message("Подписчиков: 2,8 тыс.О себе: Группа компаний ASD - правообладатель зарегистрированных торговых марок «Секунда» (клеи для ремонта), Paterra (товары для дома), Aviora..."
-            ,isPrimary = false),
-        Message("Подписчиков: 2,8 тыс.О себе: Группа компаний ASD - правообладатель зарегистрированных торговых марок «Секунда» (клеи для ремонта), Paterra (товары для дома), Aviora..."),
-        Message("Подписчиков: 2,8 тыс.О себе: Группа компаний ASD - правообладатель зарегистрированных торговых марок «Секунда» (клеи для ремонта), Paterra (товары для дома), Aviora...",
-            isPrimary = false),
-        Message("Подписчиков: 2,8 тыс.О себе: Группа компаний ASD - правообладатель зарегистрированных торговых марок «Секунда» (клеи для ремонта), Paterra (товары для дома), Aviora..."),
-    )
-    val chatState = ChatState("FirstChat", messages)
-    ChatScreen(chatState = chatState, navigateUp = { /*TODO*/ })
+fun ChatRoute(navigateUp: () -> Unit, chatName: String?,
+              viewModel: ChatViewModel = viewModel()
+) {
+    val chat = Data.chatList.find ({ it.name == chatName})
+    if (chat == null){
+        Log.e("CHAT ERROR", "Cannot find chat name ${chatName}")
+    }
+    else viewModel.onEvent(ChatEvent.LoadState(chat))
+    ChatScreen(viewModel = viewModel, navigateUp = navigateUp)
 
 
 }

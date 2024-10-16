@@ -188,8 +188,6 @@ fun ChatItem(
 @Composable
 @Preview(showBackground = true)
 fun ChatListPreview() {
-
-
     JournalChatTheme(useDarkTheme = true) {
         ChatList(
             chatList = Data.chatList,

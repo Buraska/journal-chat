@@ -55,6 +55,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -91,7 +93,7 @@ fun ChatScreen(
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
     val scrollState = rememberLazyListState()
-    val chatState by viewModel.chatState.c
+    val chatState by viewModel.chatState.collectAsState()
     Scaffold(
         topBar = {
             TopAppBar(
@@ -104,7 +106,12 @@ fun ChatScreen(
         bottomBar = { },
         modifier = modifier
             .nestedScroll(scrollBehavior.nestedScrollConnection),
-        contentWindowInsets = WindowInsets(0, 0, 0, 0) // remove additional insets to deal with inputText field.
+        contentWindowInsets = WindowInsets(
+            0,
+            0,
+            0,
+            0
+        ) // remove additional insets to deal with inputText field.
     ) {
         Column(
             modifier = modifier
@@ -114,10 +121,23 @@ fun ChatScreen(
         ) {
             Messages(messages = chatState.messages, scrollState, modifier = Modifier.weight(1f))
             InputTextField(
-                value = viewModel.chatState.input,
+                value = chatState.input,
                 onValueChange = { input -> viewModel.onEvent(ChatEvent.InputChanged(input)) },
-                onSendMessage = { Log.i("SENDING MESSAGE", Message(viewModel.chatState.input, true, LocalDateTime.now()).toString());
-                    viewModel.onEvent(ChatEvent.SendMessage(Message(viewModel.chatState.input, true, LocalDateTime.now())))},
+                onSendMessage = {
+                    Log.i(
+                        "SENDING MESSAGE",
+                        Message(chatState.input, true, LocalDateTime.now()).toString()
+                    );
+                    viewModel.onEvent(
+                        ChatEvent.SendMessage(
+                            Message(
+                                chatState.input,
+                                true,
+                                LocalDateTime.now()
+                            )
+                        )
+                    )
+                },
                 modifier = Modifier
             )
         }
@@ -247,7 +267,12 @@ fun Message(message: Message, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun InputTextField(value: String, onValueChange: (String) -> Unit, onSendMessage:() -> Unit, modifier: Modifier = Modifier) {
+fun InputTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    onSendMessage: () -> Unit,
+    modifier: Modifier = Modifier
+) {
 
     Surface(
         contentColor = MaterialTheme.colorScheme.inverseSurface,
@@ -281,7 +306,7 @@ fun InputTextField(value: String, onValueChange: (String) -> Unit, onSendMessage
                     .padding()
                     .weight(1f),
             )
-            IconButton(onClick = { /*TODO*/ },) {
+            IconButton(onClick = { /*TODO*/ }) {
                 Icon(
                     imageVector = Icons.Outlined.Add,
                     contentDescription = stringResource(R.string.stickers_and_emojis)
@@ -338,7 +363,7 @@ fun ChatPreview() {
         Message("Подписчиков: 2,8 тыс.О себе: Группа компаний ASD - правообладатель зарегистрированных торговых марок «Секунда» (клеи для ремонта), Paterra (товары для дома), Aviora..."),
     )
     val chatState = ChatState("FirstChat", messages)
-    JournalChatTheme(useDarkTheme = true) {
-        ChatScreen(chatState, {})
-    }
+//    JournalChatTheme(useDarkTheme = true) {
+//        ChatScreen(chatState, {})
 }
+

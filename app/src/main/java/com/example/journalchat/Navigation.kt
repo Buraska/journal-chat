@@ -18,7 +18,7 @@ import com.example.journalchat.ui.routes.CreateChatRoute
 enum class JournalChatScreen(val title: String) {
     Start("start"),
     CreateChat("create_chat"),
-    Chat("chat/{chatId}")
+    Chat("chat/{chatName}")
 }
 
 
@@ -30,7 +30,7 @@ fun JournalNavHost(
 ) {
         NavHost(
             navController = navController,
-            startDestination = JournalChatScreen.Chat.title,
+            startDestination = JournalChatScreen.Start.title,
         ) {
 
             composable(route = JournalChatScreen.Start.title) {

@@ -9,3 +9,5 @@
 Запись имеет метаданные.
 
 Пока всё.
+
+Why navigation launch route composable 4 times?

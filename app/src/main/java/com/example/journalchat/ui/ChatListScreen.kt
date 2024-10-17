@@ -1,6 +1,7 @@
 package com.example.journalchat.ui
 
 import android.graphics.drawable.Drawable
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -141,7 +142,11 @@ fun ChatItem(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .clip(Shapes.medium).clickable { onItemClicked(chatItem.name) },
+            .clip(Shapes.medium).clickable
+            {
+                Log.i("ChatListScreen.ChatItem", "Click on ChatItem: ${chatItem}")
+                onItemClicked(chatItem.name)
+            },
         elevation = CardDefaults.cardElevation(defaultElevation = dimensionResource(id = R.dimen.card_elevation))
     ) {
 

@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import com.example.journalchat.ui.states.ChatListState
 import com.example.journalchat.data.Data
 import com.example.journalchat.models.Chat
+import com.example.journalchat.repositories.ChatRepo
 import com.example.journalchat.ui.events.CreateChatEvent
 import com.example.journalchat.ui.states.ChatCreationState
 import com.example.journalchat.ui.validatiors.ChatCreationValidator
@@ -17,6 +18,7 @@ import kotlinx.coroutines.flow.update
 
 class CreateChatViewModel : ViewModel() {
 
+    private val chatRepository = ChatRepo()
     private val _chatListState = MutableStateFlow(ChatListState(Data.chatList))
     val chatListState: StateFlow<ChatListState> = _chatListState.asStateFlow()
 

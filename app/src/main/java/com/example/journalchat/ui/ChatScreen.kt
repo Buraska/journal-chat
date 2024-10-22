@@ -2,6 +2,7 @@ package com.example.journalchat.ui
 
 import android.util.Log
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -39,11 +40,15 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Face
+import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -55,17 +60,29 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.journalchat.AppBarNavigationIconBack
@@ -81,7 +98,7 @@ import com.example.journalchat.ui.theme.primaryMessageShape
 import com.example.journalchat.ui.viewModels.ChatViewModel
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import kotlin.math.log
+
 
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -94,13 +111,18 @@ fun ChatScreen(
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
     val scrollState = rememberLazyListState()
     val chatState by viewModel.chatState.collectAsState()
+    var isContextMenuVisible by rememberSaveable  { mutableStateOf(false) }
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = chatState.name,
                 navIcon = { AppBarNavigationIconBack { navigateUp() } },
                 topAppBarScrollBehavior = scrollBehavior,
-                action = {}
+                action = {
+                    OptionButton(onClick = {isContextMenuVisible = true})
+                    OptionMenu(isContextMenuVisible, {isContextMenuVisible = false}, DpOffset.Zero)
+                }
             )
         },
         bottomBar = { },
@@ -144,6 +166,49 @@ fun ChatScreen(
     }
 }
 
+@Composable
+fun OptionButton(onClick: () -> Unit, modifier: Modifier = Modifier)
+{
+
+IconButton(onClick = onClick)
+    {
+        Icon(imageVector = Icons.Outlined.MoreVert, contentDescription = stringResource(R.string.chat_options))
+    }
+
+
+//    Card(elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+//        modifier = modifier.onSizeChanged {
+//            itemHeight = with(density) {it.height.toDp()}
+//        })
+//    {
+//        Box(Modifier
+//            .fillMaxWidth()
+//            .clickable
+//            { isContextMenuVisible = true }
+//            .padding(16.dp))
+//    }
+
+
+}
+@Composable
+fun OptionMenu(isContextMenuVisible: Boolean, onDismissRequest: () -> Unit, dpOffset: DpOffset)
+{
+    DropdownMenu(expanded = isContextMenuVisible, onDismissRequest = onDismissRequest, offset = dpOffset)
+    {
+        DropdownMenuItem(
+            text = {Text(stringResource(R.string.delete))},
+            trailingIcon = {Icon(imageVector = Icons.Outlined.Delete, contentDescription = stringResource(
+                R.string.deletion_icon
+            )
+            )},
+            onClick =
+            {
+
+                onDismissRequest()
+            }
+        )
+    }
+}
 
 @Composable
 fun Messages(

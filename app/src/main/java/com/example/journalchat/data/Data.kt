@@ -29,6 +29,7 @@ object Data {
         c1.copy(), c2.copy(), c3.copy(),
         c1.copy(), c2.copy(), c3.copy())
 
+
     val messages = listOf<Message>(
         Message("Starting: Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] cmp=com.example.journalchat/.MainActivity }",
             dateTime = LocalDateTime.parse("2012-12-24 12:24:35", DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))),

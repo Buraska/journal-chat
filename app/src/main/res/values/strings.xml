@@ -11,4 +11,8 @@
     <string name="chat">Chat/{chatId}</string>
     <string name="stickers_and_emojis">Stickers and emojis</string>
     <string name="send_message">Send message</string>
+    <string name="chat_options">chat options</string>
+    <string name="delete_chat_icon">Delete chat Icon</string>
+    <string name="deletion_icon">Deletion icon</string>
+    <string name="delete">Delete</string>
 </resources>

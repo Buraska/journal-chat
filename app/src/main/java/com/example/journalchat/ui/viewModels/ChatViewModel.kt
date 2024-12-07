@@ -6,7 +6,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.text
 import androidx.lifecycle.ViewModel
-import com.example.journalchat.data.Data
 import com.example.journalchat.ui.events.ChatEvent
 import com.example.journalchat.ui.states.ChatListState
 import com.example.journalchat.ui.states.ChatState

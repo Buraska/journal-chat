@@ -5,11 +5,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import com.example.journalchat.ui.states.ChatListState
-import com.example.journalchat.data.Data
-import com.example.journalchat.models.Chat
-import com.example.journalchat.repositories.ChatRepo
 import com.example.journalchat.ui.events.CreateChatEvent
 import com.example.journalchat.ui.states.ChatCreationState
+import com.example.journalchat.ui.uiModels.ChatUi
 import com.example.journalchat.ui.validatiors.ChatCreationValidator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,8 +16,7 @@ import kotlinx.coroutines.flow.update
 
 class CreateChatViewModel : ViewModel() {
 
-    private val chatRepository = ChatRepo()
-    private val _chatListState = MutableStateFlow(ChatListState(Data.chatList))
+    private val _chatListState = MutableStateFlow(ChatListState(mutableListOf()))
     val chatListState: StateFlow<ChatListState> = _chatListState.asStateFlow()
 
     var chatState by mutableStateOf(ChatCreationState())
@@ -41,8 +38,8 @@ class CreateChatViewModel : ViewModel() {
                     return false;
                 }
 
-                val chat = Chat(name, mutableListOf(), null);
-                _chatListState.update { currentState -> currentState.copy(chats = currentState.chats.apply { add(chat) })}
+                val chat = ChatUi(0, name, mutableListOf(), null);
+                _chatListState.update { currentState -> currentState.copy(chats = currentState.chats.apply { })}
                 return true
             }
         }

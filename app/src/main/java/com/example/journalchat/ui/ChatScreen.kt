@@ -1,36 +1,20 @@
 package com.example.journalchat.ui
 
 import android.util.Log
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.consumeWindowInsets
-import androidx.compose.foundation.layout.consumedWindowInsets
-import androidx.compose.foundation.layout.exclude
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeContentPadding
-import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.systemBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -54,7 +38,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -64,20 +47,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -88,17 +63,16 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.journalchat.AppBarNavigationIconBack
 import com.example.journalchat.R
 import com.example.journalchat.TopAppBar
-import com.example.journalchat.models.Message
 import com.example.journalchat.ui.events.ChatEvent
 import com.example.journalchat.ui.states.ChatState
-import com.example.journalchat.ui.theme.JournalChatTheme
 import com.example.journalchat.ui.theme.Typography
 import com.example.journalchat.ui.theme.nonPrimaryMessageShape
 import com.example.journalchat.ui.theme.primaryMessageShape
+import com.example.journalchat.ui.uiModels.MessageUi
 import com.example.journalchat.ui.viewModels.ChatViewModel
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-
+import java.util.Date
 
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -148,11 +122,11 @@ fun ChatScreen(
                 onSendMessage = {
                     Log.i(
                         "SENDING MESSAGE",
-                        Message(chatState.input, true, LocalDateTime.now()).toString()
+                        MessageUi(null, chatState.input, true, LocalDateTime.now()).toString()
                     );
                     viewModel.onEvent(
                         ChatEvent.SendMessage(
-                            Message(
+                            MessageUi(null,
                                 chatState.input,
                                 true,
                                 LocalDateTime.now()
@@ -212,7 +186,7 @@ fun OptionMenu(isContextMenuVisible: Boolean, onDismissRequest: () -> Unit, dpOf
 
 @Composable
 fun Messages(
-    messages: List<Message>,
+    messages: List<MessageUi>,
     lazyListState: LazyListState,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(0.dp)
@@ -225,7 +199,7 @@ fun Messages(
 
     if (fMessage != null) {
         isLastItemPrimary = fMessage.isPrimary
-        lastTimeStamp = fMessage.dateTime
+        lastTimeStamp = fMessage.date
         LazyColumn(
             verticalArrangement = Arrangement.spacedBy(2.dp),
             reverseLayout = true,
@@ -237,14 +211,14 @@ fun Messages(
                 if (isLastItemPrimary != message.isPrimary) {
                     Spacer(modifier = Modifier.height(8.dp))
                 }
-                if (!lastTimeStamp.toLocalDate().equals(message.dateTime.toLocalDate())) {
-                    DayHeader(message.dateTime.getDate())
+                if (!lastTimeStamp.toLocalDate().equals(message.date.toLocalDate())) {
+                    DayHeader(message.date.getDate())
                 }
 
                 Message(message = message, modifier = Modifier.fillMaxWidth())
 
                 isLastItemPrimary = message.isPrimary
-                lastTimeStamp = message.dateTime
+                lastTimeStamp = message.date
             }
         }
 
@@ -282,7 +256,7 @@ fun DayHeader(dayName: String, modifier: Modifier = Modifier) {
 
 
 @Composable
-fun Message(message: Message, modifier: Modifier = Modifier) {
+fun Message(message: MessageUi, modifier: Modifier = Modifier) {
     var shape = primaryMessageShape
     var containerColor = MaterialTheme.colorScheme.surfaceVariant
     var horizontalArrangement = Arrangement.End
@@ -319,7 +293,7 @@ fun Message(message: Message, modifier: Modifier = Modifier) {
                     )
 
                     Text(
-                        text = message.dateTime.getTime(),
+                        text = message.date.getTime(),
                         style = Typography.bodySmall,
                         modifier = Modifier
                             .align(Alignment.End)
@@ -401,32 +375,14 @@ fun LocalDateTime.getDate(): String {
 @Composable
 fun ChatPreview() {
 
-    val messages = listOf<Message>(
-        Message(
+    val messages = listOf<MessageUi>(
+        MessageUi(
+            null,
             "Starting: Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] cmp=com.example.journalchat/.MainActivity }",
-            dateTime = LocalDateTime.parse(
+            date = LocalDateTime.parse(
                 "2012-12-24 12:24:35",
                 DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-            )
-        ),
-        Message("Starting: =NCH"),
-        Message("Starting: Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] cmp=com.example.journalchat/.MainActivity }"),
-        Message(
-            "Startinge.journalchat/.MainActivity }",
-            isPrimary = false
-        ),
-        Message("ASD most often refers to: Autism spectrum disorder, a neurodevelopmental condition. Читать ещё"),
-        Message(
-            "Подписчиков: 2,8 тыс.О себе: Группа компаний ASD - правообладатель зарегистрированных торговых марок «Секунда» (клеи для ремонта), Paterra (товары для дома), Aviora...",
-            isPrimary = false
-        ),
-        Message("Подписчиков: 2,8 тыс.О себе: Группа компаний ASD - правообладатель зарегистрированных торговых марок «Секунда» (клеи для ремонта), Paterra (товары для дома), Aviora..."),
-        Message(
-            "Подписчиков: 2,8 тыс.О себе: Группа компаний ASD - правообладатель зарегистрированных торговых марок «Секунда» (клеи для ремонта), Paterra (товары для дома), Aviora...",
-            isPrimary = false
-        ),
-        Message("Подписчиков: 2,8 тыс.О себе: Группа компаний ASD - правообладатель зарегистрированных торговых марок «Секунда» (клеи для ремонта), Paterra (товары для дома), Aviora..."),
-    )
+            )))
     val chatState = ChatState("FirstChat", messages)
 //    JournalChatTheme(useDarkTheme = true) {
 //        ChatScreen(chatState, {})

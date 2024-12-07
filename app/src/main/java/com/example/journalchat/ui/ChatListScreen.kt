@@ -53,16 +53,15 @@ import com.example.journalchat.AppBarNavigationDrawer
 import com.example.journalchat.FloatingBottomButton
 import com.example.journalchat.R
 import com.example.journalchat.TopAppBar
-import com.example.journalchat.models.Chat
-import com.example.journalchat.data.Data
 import com.example.journalchat.ui.theme.JournalChatTheme
 import com.example.journalchat.ui.theme.Shapes
 import com.example.journalchat.ui.theme.Typography
+import com.example.journalchat.ui.uiModels.ChatUi
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatListScreen(
-    chatList: List<Chat>,
+    chatList: List<ChatUi>,
     onButtonClick: () -> Unit,
     exposeDrawer:  () -> Unit,
     onItemClicked: (String) -> Unit,
@@ -102,7 +101,7 @@ fun ChatListScreen(
 
 @Composable
 fun ChatList(
-    chatList: List<Chat>,
+    chatList: List<ChatUi>,
     onItemClicked: (String) -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(0.dp)
@@ -134,7 +133,7 @@ fun SearchButton(){
 
 @Composable
 fun ChatItem(
-    chatItem: Chat,
+    chatItem: ChatUi,
     icon: Drawable? = null,
     onItemClicked: (String) -> Unit,
     modifier: Modifier = Modifier
@@ -195,7 +194,7 @@ fun ChatItem(
 fun ChatListPreview() {
     JournalChatTheme(useDarkTheme = true) {
         ChatList(
-            chatList = Data.chatList,
+            chatList = listOf(),
             onItemClicked = {},
             modifier = Modifier.background(MaterialTheme.colorScheme.background)
         )

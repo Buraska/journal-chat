@@ -1,7 +1,8 @@
 package com.example.journalchat.ui.states
 
-import com.example.journalchat.models.Chat
+import com.example.journalchat.ui.uiModels.ChatUi
+
 
 data class ChatListState(
-    val chats: MutableList<Chat>,
+    val chats: List<ChatUi>,
 )

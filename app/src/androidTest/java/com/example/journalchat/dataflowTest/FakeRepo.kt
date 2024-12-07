@@ -1,8 +1,8 @@
 package com.example.journalchat.dataflowTest
 
-import com.example.journalchat.repositories.BaseRepo
-import com.example.journalchat.repositories.BaseRepoInterface
-import com.example.journalchat.repositories.ChatRepo
+import com.example.journalchat.data.repositories.BaseRepo
+import com.example.journalchat.data.repositories.BaseRepoInterface
+import com.example.journalchat.data.repositories.ChatRepo
 import kotlinx.coroutines.flow.flow
 
 class FakeRepo: BaseRepoInterface {

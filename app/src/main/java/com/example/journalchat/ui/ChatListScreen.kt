@@ -64,7 +64,7 @@ fun ChatListScreen(
     chatList: List<ChatUi>,
     onButtonClick: () -> Unit,
     exposeDrawer:  () -> Unit,
-    onItemClicked: (String) -> Unit,
+    onItemClicked: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
@@ -102,7 +102,7 @@ fun ChatListScreen(
 @Composable
 fun ChatList(
     chatList: List<ChatUi>,
-    onItemClicked: (String) -> Unit,
+    onItemClicked: (Long) -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(0.dp)
 ) {
@@ -135,7 +135,7 @@ fun SearchButton(){
 fun ChatItem(
     chatItem: ChatUi,
     icon: Drawable? = null,
-    onItemClicked: (String) -> Unit,
+    onItemClicked: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -144,7 +144,7 @@ fun ChatItem(
             .clip(Shapes.medium).clickable
             {
                 Log.i("ChatListScreen.ChatItem", "Click on ChatItem: ${chatItem}")
-                onItemClicked(chatItem.name)
+                onItemClicked(chatItem.id)
             },
         elevation = CardDefaults.cardElevation(defaultElevation = dimensionResource(id = R.dimen.card_elevation))
     ) {

@@ -4,45 +4,35 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
-import com.example.journalchat.ui.states.ChatListState
-import com.example.journalchat.ui.events.CreateChatEvent
+import com.example.journalchat.data.repositories.ChatRepository
 import com.example.journalchat.ui.states.ChatCreationState
 import com.example.journalchat.ui.uiModels.ChatUi
 import com.example.journalchat.ui.validatiors.ChatCreationValidator
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import com.example.journalchat.ui.uiModels.toChat
 
-class CreateChatViewModel : ViewModel() {
+class CreateChatViewModel(private val chatRepository: ChatRepository) : ViewModel() {
 
-    private val _chatListState = MutableStateFlow(ChatListState(mutableListOf()))
-    val chatListState: StateFlow<ChatListState> = _chatListState.asStateFlow()
 
     var chatState by mutableStateOf(ChatCreationState())
+    private set
 
 
-    fun onEvent(event:CreateChatEvent): Boolean{
-        when (event){
-            is CreateChatEvent.NameChanged ->{
-                chatState = chatState.copy(name = event.name)
-                return true
-            }
-            is CreateChatEvent.Submit -> {
-                val name = chatState.name.trim()
+    fun nameChanged(name: String){
+        chatState = chatState.copy(name = name)
+    }
 
-                ChatCreationValidator().validateName(name)
-                val error = ChatCreationValidator().validateName(name).errorMessage;
-                chatState = chatState.copy(nameError = error)
-                if (chatState.nameError != null){
-                    return false;
-                }
+    suspend fun createChat(): Boolean{
+        val name = chatState.name.trim()
 
-                val chat = ChatUi(0, name, mutableListOf(), null);
-                _chatListState.update { currentState -> currentState.copy(chats = currentState.chats.apply { })}
-                return true
-            }
+        val error = ChatCreationValidator().validateName(name).errorMessage;
+        chatState = chatState.copy(nameError = error)
+        if (chatState.nameError != null){
+            return false;
         }
+
+        val chat = ChatUi(0, name, mutableListOf(), null);
+        chatRepository.insertItem(chat.toChat())
+        return true
     }
 
 }

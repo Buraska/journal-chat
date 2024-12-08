@@ -12,7 +12,7 @@ import com.example.journalchat.ui.ChatListScreen
 fun ChatListRoute(
     exposeDrawer: () -> Unit,
     onCreateButton: () -> Unit,
-    onItemClicked: (String) -> Unit,
+    onItemClicked: (Long) -> Unit,
     viewModel: ChatListViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ){
     val appState by viewModel.chatListState.collectAsState()

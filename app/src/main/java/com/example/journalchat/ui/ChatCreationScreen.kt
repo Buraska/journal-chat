@@ -27,6 +27,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,9 +43,10 @@ import com.example.journalchat.AppBarNavigationIconBack
 import com.example.journalchat.FloatingBottomButton
 import com.example.journalchat.R
 import com.example.journalchat.TopAppBar
-import com.example.journalchat.ui.events.CreateChatEvent
 import com.example.journalchat.ui.theme.Shapes
 import com.example.journalchat.ui.viewModels.CreateChatViewModel
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -52,26 +54,34 @@ import com.example.journalchat.ui.viewModels.CreateChatViewModel
 fun ChatCreationScreen(
     navigateUp: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: CreateChatViewModel = viewModel()
+    viewModel: CreateChatViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
     val chatState = viewModel.chatState
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
+    val scope = rememberCoroutineScope()
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = stringResource(id = R.string.app_name),
-                navIcon = {AppBarNavigationIconBack { navigateUp() } },
+                navIcon = { AppBarNavigationIconBack { navigateUp() } },
                 topAppBarScrollBehavior = scrollBehavior,
                 action = {}
             )
         },
-        floatingActionButton = {FloatingBottomButton(
-            imageVector = Icons.Outlined.Check,
-            buttonDescription = stringResource(R.string.create_chat),
-            isVisible = true,
-            onClick = { if (viewModel.onEvent(CreateChatEvent.Submit)) { navigateUp() } },
-        )},
+        floatingActionButton = {
+            FloatingBottomButton(
+                imageVector = Icons.Outlined.Check,
+                buttonDescription = stringResource(R.string.create_chat),
+                isVisible = true,
+                onClick = {
+                    scope.launch {
+                        if (viewModel.createChat()){
+                        navigateUp()
+                        }
+                    }},
+                )
+        },
         bottomBar = { },
         modifier = modifier
             .fillMaxSize()
@@ -84,7 +94,7 @@ fun ChatCreationScreen(
         ) {
             ChatCreation(
                 chatState.name,
-                { inputText -> viewModel.onEvent(CreateChatEvent.NameChanged(inputText)) },
+                { inputText -> viewModel.nameChanged(inputText) },
                 errorMessage = chatState.nameError,
                 modifier = Modifier
             )

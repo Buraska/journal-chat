@@ -23,13 +23,11 @@ interface ChatDao {
     suspend fun delete(item: Chat)
 
     @Query("SELECT * from chat WHERE id = :id")
-    fun get(id: Int): Flow<Chat>
+    fun get(id: Long): Flow<Chat>
 
     @Query("SELECT * from chat")
     fun getAll(): Flow<List<Chat>>
 
-    @Query(
-        "SELECT * FROM chat JOIN message ON chat.id = message.chat_id"
-    )
-    fun loadUserAndBookNames(): Map<Chat, List<Message>>
+    @Query("SELECT * FROM chat JOIN message ON chat.id = message.chat_id WHERE chat.id = :id")
+    fun getChatAndMessages(id: Int): Map<Chat, List<Message>>
 }

@@ -8,11 +8,14 @@ import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.example.journalchat.ui.ChatScreen
+import com.example.journalchat.ui.ChatScreenDestination
 import com.example.journalchat.ui.routes.ChatListRoute
-import com.example.journalchat.ui.routes.ChatRoute
 import com.example.journalchat.ui.routes.CreateChatRoute
 
 enum class JournalChatScreen(val title: String) {
@@ -37,13 +40,14 @@ fun JournalNavHost(
                 ChatListRoute(
                     onCreateButton =  { navController.navigate(JournalChatScreen.CreateChat.title) },
                     exposeDrawer = { },
-                    onItemClicked = {chatName -> navController.navigate("chat/$chatName") })
+                    onItemClicked = {chatId -> navController.navigate("chat/$chatId") })
             }
             composable(route = JournalChatScreen.CreateChat.title) {
                 CreateChatRoute(navigateUp =  { navController.navigateUpOrAtHome()})
             }
-            composable(route = JournalChatScreen.Chat.title) {
-                ChatRoute(navigateUp = { navController.navigateUpOrAtHome()}, it.arguments?.getString("chatName"))
+            composable(route = ChatScreenDestination.routeWithArgs,
+                arguments = listOf(navArgument(ChatScreenDestination.chatIdArg){type = NavType.LongType})) {
+                ChatScreen(navigateUp = { navController.navigateUpOrAtHome()})
             }
         }
 }
@@ -73,3 +77,8 @@ fun AppBarNavigationDrawer(exposeDrawer: () -> Unit){
         )
     }
 }
+
+interface NavigationDestination {
+    val route: String
+}
+

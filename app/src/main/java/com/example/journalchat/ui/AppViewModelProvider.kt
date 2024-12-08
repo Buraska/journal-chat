@@ -24,6 +24,8 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.journalchat.JournalChatApplication
 import com.example.journalchat.ui.viewModels.ChatListViewModel
+import com.example.journalchat.ui.viewModels.ChatViewModel
+import com.example.journalchat.ui.viewModels.CreateChatViewModel
 
 /**
  * Provides Factory to create instance of ViewModel for the entire Inventory app
@@ -34,6 +36,18 @@ object AppViewModelProvider {
         initializer {
             ChatListViewModel(
                 inventoryApplication().container.chatRepository
+            )
+        }
+        initializer {
+            CreateChatViewModel(
+                inventoryApplication().container.chatRepository
+            )
+        }
+        initializer {
+            ChatViewModel(
+                this.createSavedStateHandle(),
+                inventoryApplication().container.chatRepository,
+                inventoryApplication().container.messageRepository,
             )
         }
     }

@@ -61,10 +61,10 @@ import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.journalchat.AppBarNavigationIconBack
+import com.example.journalchat.NavigationDestination
 import com.example.journalchat.R
 import com.example.journalchat.TopAppBar
 import com.example.journalchat.ui.events.ChatEvent
-import com.example.journalchat.ui.states.ChatState
 import com.example.journalchat.ui.theme.Typography
 import com.example.journalchat.ui.theme.nonPrimaryMessageShape
 import com.example.journalchat.ui.theme.primaryMessageShape
@@ -72,15 +72,19 @@ import com.example.journalchat.ui.uiModels.MessageUi
 import com.example.journalchat.ui.viewModels.ChatViewModel
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import java.util.Date
 
+object ChatScreenDestination : NavigationDestination {
+    override val route = "chat"
+    const val chatIdArg = "chatId"
+    val routeWithArgs = "$route/{$chatIdArg}"
+}
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ChatScreen(
     navigateUp: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: ChatViewModel = viewModel()
+    viewModel: ChatViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
     val scrollState = rememberLazyListState()
@@ -90,7 +94,7 @@ fun ChatScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = chatState.name,
+                title = chatState.chat.name,
                 navIcon = { AppBarNavigationIconBack { navigateUp() } },
                 topAppBarScrollBehavior = scrollBehavior,
                 action = {
@@ -120,13 +124,10 @@ fun ChatScreen(
                 value = chatState.input,
                 onValueChange = { input -> viewModel.onEvent(ChatEvent.InputChanged(input)) },
                 onSendMessage = {
-                    Log.i(
-                        "SENDING MESSAGE",
-                        MessageUi(null, chatState.input, true, LocalDateTime.now()).toString()
-                    );
                     viewModel.onEvent(
                         ChatEvent.SendMessage(
-                            MessageUi(null,
+                            MessageUi(0,
+                                chatState.chat.id,
                                 chatState.input,
                                 true,
                                 LocalDateTime.now()
@@ -375,15 +376,15 @@ fun LocalDateTime.getDate(): String {
 @Composable
 fun ChatPreview() {
 
-    val messages = listOf<MessageUi>(
-        MessageUi(
-            null,
-            "Starting: Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] cmp=com.example.journalchat/.MainActivity }",
-            date = LocalDateTime.parse(
-                "2012-12-24 12:24:35",
-                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-            )))
-    val chatState = ChatState("FirstChat", messages)
+//    val messages = listOf<MessageUi>(
+//        MessageUi(
+//            null,
+//            "Starting: Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] cmp=com.example.journalchat/.MainActivity }",
+//            date = LocalDateTime.parse(
+//                "2012-12-24 12:24:35",
+//                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+//            )))
+//    val chatState = ChatState("FirstChat", messages)
 //    JournalChatTheme(useDarkTheme = true) {
 //        ChatScreen(chatState, {})
 }

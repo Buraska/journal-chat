@@ -7,9 +7,9 @@ import kotlinx.coroutines.flow.Flow
 
 class MessageRepository(private val messageDao: MessageDao) {
 
-    fun getAllStream(): Flow<List<Message>> = messageDao.getAll()
+    fun getAllStream(id: Long): Flow<List<Message>> = messageDao.getAll(id)
 
-    fun getStream(id: Int): Flow<Message?> = messageDao.get(id)
+    fun getStream(id: Long): Flow<Message?> = messageDao.get(id)
 
     suspend fun insertItem(item: Message) = messageDao.insert(item)
 

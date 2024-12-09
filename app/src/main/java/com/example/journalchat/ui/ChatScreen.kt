@@ -89,7 +89,9 @@ fun ChatScreen(
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
     val scrollState = rememberLazyListState()
     val chatState by viewModel.chatState.collectAsState()
-    var isContextMenuVisible by rememberSaveable  { mutableStateOf(false) }
+    var isContextMenuVisible by rememberSaveable { mutableStateOf(false) }
+
+    Log.wtf("wtf", chatState.chat.name)
 
     Scaffold(
         topBar = {
@@ -98,8 +100,12 @@ fun ChatScreen(
                 navIcon = { AppBarNavigationIconBack { navigateUp() } },
                 topAppBarScrollBehavior = scrollBehavior,
                 action = {
-                    OptionButton(onClick = {isContextMenuVisible = true})
-                    OptionMenu(isContextMenuVisible, {isContextMenuVisible = false}, DpOffset.Zero)
+                    OptionButton(onClick = { isContextMenuVisible = true })
+                    OptionMenu(
+                        isContextMenuVisible,
+                        { isContextMenuVisible = false },
+                        DpOffset.Zero
+                    )
                 }
             )
         },
@@ -119,21 +125,16 @@ fun ChatScreen(
                 .consumeWindowInsets(it)
                 .systemBarsPadding(),
         ) {
-            Messages(messages = chatState.messages, scrollState, modifier = Modifier.weight(1f))
+            Messages(
+                messages = chatState.messages,
+                scrollState,
+                modifier = Modifier.weight(1f)
+            )
             InputTextField(
                 value = chatState.input,
-                onValueChange = { input -> viewModel.onEvent(ChatEvent.InputChanged(input)) },
+                onValueChange = {input -> viewModel.inputChanged(input)},
                 onSendMessage = {
-                    viewModel.onEvent(
-                        ChatEvent.SendMessage(
-                            MessageUi(0,
-                                chatState.chat.id,
-                                chatState.input,
-                                true,
-                                LocalDateTime.now()
-                            )
-                        )
-                    )
+                    viewModel.sendMessage()
                 },
                 modifier = Modifier
             )
@@ -142,12 +143,14 @@ fun ChatScreen(
 }
 
 @Composable
-fun OptionButton(onClick: () -> Unit, modifier: Modifier = Modifier)
-{
+fun OptionButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
 
-IconButton(onClick = onClick)
+    IconButton(onClick = onClick)
     {
-        Icon(imageVector = Icons.Outlined.MoreVert, contentDescription = stringResource(R.string.chat_options))
+        Icon(
+            imageVector = Icons.Outlined.MoreVert,
+            contentDescription = stringResource(R.string.chat_options)
+        )
     }
 
 
@@ -165,17 +168,24 @@ IconButton(onClick = onClick)
 
 
 }
+
 @Composable
-fun OptionMenu(isContextMenuVisible: Boolean, onDismissRequest: () -> Unit, dpOffset: DpOffset)
-{
-    DropdownMenu(expanded = isContextMenuVisible, onDismissRequest = onDismissRequest, offset = dpOffset)
+fun OptionMenu(isContextMenuVisible: Boolean, onDismissRequest: () -> Unit, dpOffset: DpOffset) {
+    DropdownMenu(
+        expanded = isContextMenuVisible,
+        onDismissRequest = onDismissRequest,
+        offset = dpOffset
+    )
     {
         DropdownMenuItem(
-            text = {Text(stringResource(R.string.delete))},
-            trailingIcon = {Icon(imageVector = Icons.Outlined.Delete, contentDescription = stringResource(
-                R.string.deletion_icon
-            )
-            )},
+            text = { Text(stringResource(R.string.delete)) },
+            trailingIcon = {
+                Icon(
+                    imageVector = Icons.Outlined.Delete, contentDescription = stringResource(
+                        R.string.deletion_icon
+                    )
+                )
+            },
             onClick =
             {
 
@@ -193,34 +203,35 @@ fun Messages(
     contentPadding: PaddingValues = PaddingValues(0.dp)
 ) {
     val fMessage = messages.getOrNull(0);
-    var isLastItemPrimary: Boolean
-    var lastTimeStamp: LocalDateTime
+    var isLastItemPrimary: Boolean?
+    var lastTimeStamp: LocalDateTime?
 
 
 
-    if (fMessage != null) {
-        isLastItemPrimary = fMessage.isPrimary
-        lastTimeStamp = fMessage.date
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-            reverseLayout = true,
-            state = lazyListState,
-            contentPadding = contentPadding,
-            modifier = modifier
-        ) {
-            itemsIndexed(messages) { index, message ->
-                if (isLastItemPrimary != message.isPrimary) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-                if (!lastTimeStamp.toLocalDate().equals(message.date.toLocalDate())) {
-                    DayHeader(message.date.getDate())
-                }
 
-                Message(message = message, modifier = Modifier.fillMaxWidth())
+    LazyColumn(
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+        reverseLayout = true,
+        state = lazyListState,
+        contentPadding = contentPadding,
+        modifier = modifier
+    ) {
+        isLastItemPrimary = null
+        lastTimeStamp = null
 
+        itemsIndexed(messages) { index, message ->
+            if (isLastItemPrimary != message.isPrimary) {
+                Spacer(modifier = Modifier.height(8.dp))
                 isLastItemPrimary = message.isPrimary
-                lastTimeStamp = message.date
             }
+            if (lastTimeStamp?.toLocalDate()?.equals(message.date.toLocalDate()) != true) {
+                DayHeader(message.date.getDate())
+            }
+
+            Message(message = message, modifier = Modifier.fillMaxWidth())
+
+            isLastItemPrimary = message.isPrimary
+            lastTimeStamp = message.date
         }
 
     }

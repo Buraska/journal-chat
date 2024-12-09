@@ -24,6 +24,6 @@ interface MessageDao {
     @Query("SELECT * from message WHERE id = :id")
     fun get(id: Long): Flow<Message>
 
-    @Query("SELECT * from message WHERE chat_id = :chatId")
+    @Query("SELECT * from message WHERE chat_id = :chatId ORDER BY date DESC")
     fun getAll(chatId: Long): Flow<List<Message>>
 }

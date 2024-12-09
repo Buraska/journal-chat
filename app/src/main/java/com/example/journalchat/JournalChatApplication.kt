@@ -32,9 +32,5 @@ class JournalChatApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         container = AppDataContainer(this)
-
-        GlobalScope.launch {
-            container.chatRepository.insertItem(Chat(0, "asd", null))
-        }
     }
 }

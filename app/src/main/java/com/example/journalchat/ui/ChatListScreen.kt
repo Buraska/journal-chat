@@ -88,12 +88,12 @@ fun ChatListScreen(
         modifier = modifier
             .fillMaxSize()
             .nestedScroll(scrollBehavior.nestedScrollConnection)
-    ){
+    ){ innerPadding ->
         Box(modifier = modifier
             .fillMaxSize()
-            .padding(it)) {
+            .padding(innerPadding))
+        {
             ChatList(chatList, onItemClicked)
-
         }
     }
 }

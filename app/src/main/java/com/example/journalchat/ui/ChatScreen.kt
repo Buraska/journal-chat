@@ -8,13 +8,20 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeContent
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -112,18 +119,17 @@ fun ChatScreen(
         bottomBar = { },
         modifier = modifier
             .nestedScroll(scrollBehavior.nestedScrollConnection),
-        contentWindowInsets = WindowInsets(
-            0,
-            0,
-            0,
-            0
-        ) // remove additional insets to deal with inputText field.
-    ) {
+//        contentWindowInsets = WindowInsets(
+//            0,
+//            0,
+//            0,
+//            0
+//        ) // remove additional insets to deal with inputText field.
+    ) { innerPadding ->
         Column(
             modifier = modifier
                 .fillMaxSize()
-                .consumeWindowInsets(it)
-                .systemBarsPadding(),
+                .padding(top = innerPadding.calculateTopPadding()),
         ) {
             Messages(
                 messages = chatState.messages,
@@ -136,8 +142,9 @@ fun ChatScreen(
                 onSendMessage = {
                     viewModel.sendMessage()
                 },
-                modifier = Modifier
+                modifier = Modifier.imePadding().navigationBarsPadding()
             )
+
         }
     }
 }
@@ -220,20 +227,12 @@ fun Messages(
         lastTimeStamp = null
 
         itemsIndexed(messages) { index, message ->
-            if (isLastItemPrimary != message.isPrimary) {
-                Spacer(modifier = Modifier.height(8.dp))
-                isLastItemPrimary = message.isPrimary
-            }
-            if (lastTimeStamp?.toLocalDate()?.equals(message.date.toLocalDate()) != true) {
-                DayHeader(message.date.getDate())
-            }
 
             Message(message = message, modifier = Modifier.fillMaxWidth())
 
             isLastItemPrimary = message.isPrimary
             lastTimeStamp = message.date
         }
-
     }
 }
 
@@ -329,8 +328,6 @@ fun InputTextField(
         contentColor = MaterialTheme.colorScheme.inverseSurface,
         color = (MaterialTheme.colorScheme.surfaceVariant),
         modifier = modifier
-            .fillMaxWidth()
-            .imePadding()
     ) {
         Row(
             modifier = Modifier

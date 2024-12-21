@@ -3,6 +3,7 @@ package com.example.journalchat.ui.viewModels
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.text
 import androidx.lifecycle.SavedStateHandle
@@ -16,6 +17,7 @@ import com.example.journalchat.ui.states.ChatCreationState
 import com.example.journalchat.ui.states.ChatListState
 import com.example.journalchat.ui.states.ChatState
 import com.example.journalchat.ui.uiModels.ChatUi
+import com.example.journalchat.ui.uiModels.MessageUi
 import com.example.journalchat.ui.uiModels.toChatUi
 import com.example.journalchat.ui.uiModels.toMessageUi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,7 +42,7 @@ class ChatViewModel(
 
     val chat = chatRepository.getStream(id)
 
-    private val _chatState = MutableStateFlow(ChatState(ChatUi()))
+    private val _chatState = MutableStateFlow(ChatState())
     val chatState: StateFlow<ChatState> = _chatState.asStateFlow()
 
     init {
@@ -59,30 +61,60 @@ class ChatViewModel(
     fun sendMessage() {
         if (chatState.value.input == "") return
         viewModelScope.launch {
-            messageRepository.insertItem(Message(0, id, chatState.value.input, true, LocalDateTime.now()))
-            inputChanged("")
+            messageRepository.insertItem(
+                Message(
+                    0,
+                    id,
+                    chatState.value.input,
+                    true,
+                    LocalDateTime.now()
+                )
+            )
+//            inputChanged("")
         }
     }
 
     fun inputChanged(input: String) {
         _chatState.update { currentState -> currentState.copy(input = input) }
     }
-}
 
+    fun getSelectedCount(): Int {
+        return _chatState.value.selectedMessages.size
+    }
 
-
-
-fun onEvent(event: ChatEvent) {
-    when (event) {
-        is ChatEvent.InputChanged -> {
+    fun selectMessage(messageUi: MessageUi) {
+        messageUi.isSelected = !messageUi.isSelected
+        if (messageUi.isSelected) {
+            _chatState.update { currentState ->
+                currentState.copy(
+                    selectedMessages = currentState.selectedMessages.plus(
+                        messageUi
+                    )
+                )
+            }
+        } else _chatState.update { currentState ->
+            currentState.copy(
+                selectedMessages = currentState.selectedMessages.minus(
+                    messageUi
+                )
+            )
         }
 
-        is ChatEvent.SendMessage -> {
-        }
+    }
 
-        is ChatEvent.LoadState -> {
+    fun isSelectionMode(): Boolean {
+        Log.wtf("isSelectionMode", _chatState.value.selectedMessages.isNotEmpty().toString())
+        return _chatState.value.selectedMessages.isNotEmpty()
+    }
 
+    fun clearSelection() {
+        _chatState.value.selectedMessages.map { it.isSelected = false }
+        _chatState.update { currentState ->
+            currentState.copy(selectedMessages = listOf())
         }
     }
 }
+
+
+
 

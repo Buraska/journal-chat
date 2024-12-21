@@ -1,12 +1,13 @@
 package com.example.journalchat.ui.uiModels
 
+import androidx.compose.runtime.mutableStateOf
 import com.example.journalchat.data.models.Chat
 
 data class ChatUi(
 
     val id: Long = 0,
     val name: String = "",
-    val messages: List<MessageUi> = listOf(),
+    val messages: List<MessageUi> = listOf(), // TODO do we need messages here?
     val chatIcon: Int? = null
 )
 

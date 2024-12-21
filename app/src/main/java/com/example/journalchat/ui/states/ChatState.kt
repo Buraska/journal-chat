@@ -5,7 +5,8 @@ import com.example.journalchat.ui.uiModels.MessageUi
 
 
 data class ChatState(
-    val chat: ChatUi,
+    val chat: ChatUi = ChatUi(),
     val messages: List<MessageUi> = listOf(),
+    val selectedMessages: List<MessageUi> = listOf(),
     val input: String = ""
 )

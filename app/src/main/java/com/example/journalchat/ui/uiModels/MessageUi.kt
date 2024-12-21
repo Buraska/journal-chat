@@ -11,7 +11,8 @@ data class MessageUi (
     val chatId: Long,
     val content:String,
     val isPrimary: Boolean = true,
-    val date: LocalDateTime = LocalDateTime.now()
+    val date: LocalDateTime = LocalDateTime.now(),
+    var isSelected: Boolean = false
 )
 
 fun MessageUi.toMessage(): Message {

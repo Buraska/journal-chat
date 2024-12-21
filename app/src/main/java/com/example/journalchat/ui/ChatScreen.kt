@@ -1,27 +1,19 @@
 package com.example.journalchat.ui
 
 import android.util.Log
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.calculateStartPadding
-import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeContent
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.systemBars
-import androidx.compose.foundation.layout.systemBarsPadding
-import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -31,6 +23,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Clear
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Face
 import androidx.compose.material.icons.outlined.MoreVert
@@ -57,6 +50,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
@@ -71,7 +65,6 @@ import com.example.journalchat.AppBarNavigationIconBack
 import com.example.journalchat.NavigationDestination
 import com.example.journalchat.R
 import com.example.journalchat.TopAppBar
-import com.example.journalchat.ui.events.ChatEvent
 import com.example.journalchat.ui.theme.Typography
 import com.example.journalchat.ui.theme.nonPrimaryMessageShape
 import com.example.journalchat.ui.theme.primaryMessageShape
@@ -98,33 +91,43 @@ fun ChatScreen(
     val chatState by viewModel.chatState.collectAsState()
     var isContextMenuVisible by rememberSaveable { mutableStateOf(false) }
 
-    Log.wtf("wtf", chatState.chat.name)
-
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = chatState.chat.name,
-                navIcon = { AppBarNavigationIconBack { navigateUp() } },
-                topAppBarScrollBehavior = scrollBehavior,
-                action = {
-                    OptionButton(onClick = { isContextMenuVisible = true })
-                    OptionMenu(
-                        isContextMenuVisible,
-                        { isContextMenuVisible = false },
-                        DpOffset.Zero
-                    )
-                }
-            )
+            if (chatState.selectedMessages.isNotEmpty()) {
+                TopAppBar(
+                    title = viewModel.getSelectedCount().toString(),
+                    navIcon = {
+                        IconButton(onClick = {viewModel.clearSelection()}, Modifier) {
+                            Icon(
+                                Icons.Outlined.Clear,
+                                "Clear selection"
+                            )
+                        }
+                    },
+                    topAppBarScrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(
+                        rememberTopAppBarState()
+                    ),
+                    action = {}
+                )
+            } else {
+                TopAppBar(
+                    title = chatState.chat.name,
+                    navIcon = { AppBarNavigationIconBack { navigateUp() } },
+                    topAppBarScrollBehavior = scrollBehavior,
+                    action = {
+                        OptionButton(onClick = { isContextMenuVisible = true })
+                        OptionMenu(
+                            isContextMenuVisible,
+                            { isContextMenuVisible = false },
+                            DpOffset.Zero
+                        )
+                    }
+                )
+            }
         },
         bottomBar = { },
         modifier = modifier
             .nestedScroll(scrollBehavior.nestedScrollConnection),
-//        contentWindowInsets = WindowInsets(
-//            0,
-//            0,
-//            0,
-//            0
-//        ) // remove additional insets to deal with inputText field.
     ) { innerPadding ->
         Column(
             modifier = modifier
@@ -134,15 +137,25 @@ fun ChatScreen(
             Messages(
                 messages = chatState.messages,
                 scrollState,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                onMessageClick = { messageUi ->
+                    if (viewModel.isSelectionMode()) {
+                        viewModel.selectMessage(messageUi)
+                    }
+                },
+                onMessageLongClick = { messageUi ->
+                    viewModel.selectMessage(messageUi)
+                }
             )
             InputTextField(
                 value = chatState.input,
-                onValueChange = {input -> viewModel.inputChanged(input)},
+                onValueChange = { input -> viewModel.inputChanged(input) },
                 onSendMessage = {
                     viewModel.sendMessage()
                 },
-                modifier = Modifier.imePadding().navigationBarsPadding()
+                modifier = Modifier
+                    .imePadding()
+                    .navigationBarsPadding()
             )
 
         }
@@ -206,14 +219,14 @@ fun OptionMenu(isContextMenuVisible: Boolean, onDismissRequest: () -> Unit, dpOf
 fun Messages(
     messages: List<MessageUi>,
     lazyListState: LazyListState,
+    onMessageClick: (MessageUi) -> Unit,
+    onMessageLongClick: (MessageUi) -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(0.dp)
 ) {
     val fMessage = messages.getOrNull(0);
     var isLastItemPrimary: Boolean?
     var lastTimeStamp: LocalDateTime?
-
-
 
 
     LazyColumn(
@@ -228,7 +241,12 @@ fun Messages(
 
         itemsIndexed(messages) { index, message ->
 
-            Message(message = message, modifier = Modifier.fillMaxWidth())
+            Message(
+                message = message,
+                modifier = Modifier.fillMaxWidth(),
+                onClick = { onMessageClick(message) },
+                onLongClick = { onMessageLongClick(message) }
+            )
 
             isLastItemPrimary = message.isPrimary
             lastTimeStamp = message.date
@@ -266,10 +284,17 @@ fun DayHeader(dayName: String, modifier: Modifier = Modifier) {
 }
 
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun Message(message: MessageUi, modifier: Modifier = Modifier) {
+fun Message(
+    message: MessageUi,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     var shape = primaryMessageShape
     var containerColor = MaterialTheme.colorScheme.surfaceVariant
+    var selectedColor = MaterialTheme.colorScheme.onBackground.copy(0.20f)
     var horizontalArrangement = Arrangement.End
 
     if (!message.isPrimary) {
@@ -277,8 +302,17 @@ fun Message(message: MessageUi, modifier: Modifier = Modifier) {
         shape = nonPrimaryMessageShape
         containerColor = MaterialTheme.colorScheme.secondary
     }
-
-    Row(modifier = modifier, horizontalArrangement = horizontalArrangement) {
+    Row(
+        modifier = modifier
+            .drawWithContent {
+                drawContent()
+                if (message.isSelected) drawRect(selectedColor)
+            }
+            .combinedClickable(
+                onClick = { onClick() },
+                onLongClick = { onLongClick() }),
+        horizontalArrangement = horizontalArrangement,
+    ) {
         Row(
             horizontalArrangement = horizontalArrangement,
             modifier = Modifier.fillMaxWidth(0.95f)

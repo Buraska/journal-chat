@@ -1,33 +1,23 @@
 package com.example.journalchat.ui.viewModels
 
-import android.util.Log
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.semantics.text
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.journalchat.data.models.Message
 import com.example.journalchat.data.repositories.ChatRepository
 import com.example.journalchat.data.repositories.MessageRepository
-import com.example.journalchat.ui.events.ChatEvent
-import com.example.journalchat.ui.states.ChatCreationState
-import com.example.journalchat.ui.states.ChatListState
+import com.example.journalchat.ui.states.ChatMode
 import com.example.journalchat.ui.states.ChatState
-import com.example.journalchat.ui.uiModels.ChatUi
 import com.example.journalchat.ui.uiModels.MessageUi
 import com.example.journalchat.ui.uiModels.toChatUi
+import com.example.journalchat.ui.uiModels.toMessage
 import com.example.journalchat.ui.uiModels.toMessageUi
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
@@ -89,7 +79,8 @@ class ChatViewModel(
                 currentState.copy(
                     selectedMessages = currentState.selectedMessages.plus(
                         messageUi
-                    )
+                    ),
+                    mode = ChatMode.Selecting
                 )
             }
         } else _chatState.update { currentState ->
@@ -99,18 +90,43 @@ class ChatViewModel(
                 )
             )
         }
-
+        if (chatState.value.selectedMessages.isEmpty()){
+            switchMode(ChatMode.Chatting)
+        }
     }
 
-    fun isSelectionMode(): Boolean {
-        Log.wtf("isSelectionMode", _chatState.value.selectedMessages.isNotEmpty().toString())
-        return _chatState.value.selectedMessages.isNotEmpty()
-    }
+
 
     fun clearSelection() {
         _chatState.value.selectedMessages.map { it.isSelected = false }
         _chatState.update { currentState ->
-            currentState.copy(selectedMessages = listOf())
+            currentState.copy(selectedMessages = listOf(), mode = ChatMode.Chatting)
+        }
+    }
+
+    fun stopEditing(){
+        clearSelection()
+        inputChanged("")
+    }
+
+    fun switchMode(chatMode: ChatMode){
+        _chatState.update { currentState ->
+            currentState.copy(mode = chatMode)
+        }
+    }
+
+    fun deleteMessages() {
+        viewModelScope.launch {
+            messageRepository.deleteMessages(chatState.value.selectedMessages.map { it.toMessage() })
+        }
+    }
+
+    fun startEditing() {
+        if (chatState.value.selectedMessages.size != 1) return
+        val message = chatState.value.selectedMessages[0]
+        inputChanged(message.content)
+        _chatState.update { currentState ->
+            currentState.copy(mode = ChatMode.Editing)
         }
     }
 }

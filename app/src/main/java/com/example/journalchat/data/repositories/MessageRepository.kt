@@ -15,5 +15,7 @@ class MessageRepository(private val messageDao: MessageDao) {
 
     suspend fun deleteItem(item: Message) = messageDao.delete(item)
 
+    suspend fun deleteMessages(messages: List<Message>) = messageDao.deleteMessages(messages)
+
     suspend fun updateItem(item: Message) = messageDao.update(item)
 }

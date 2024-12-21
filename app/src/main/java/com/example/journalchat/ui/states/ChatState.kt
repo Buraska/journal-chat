@@ -8,5 +8,15 @@ data class ChatState(
     val chat: ChatUi = ChatUi(),
     val messages: List<MessageUi> = listOf(),
     val selectedMessages: List<MessageUi> = listOf(),
+    val mode: ChatMode = ChatMode.Chatting,
     val input: String = ""
 )
+{
+
+}
+
+enum class ChatMode {
+    Chatting,
+    Editing,
+    Selecting
+}

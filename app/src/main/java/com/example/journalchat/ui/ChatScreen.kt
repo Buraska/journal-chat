@@ -1,6 +1,6 @@
 package com.example.journalchat.ui
 
-import android.util.Log
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -25,6 +25,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Clear
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Face
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Phone
@@ -65,6 +66,7 @@ import com.example.journalchat.AppBarNavigationIconBack
 import com.example.journalchat.NavigationDestination
 import com.example.journalchat.R
 import com.example.journalchat.TopAppBar
+import com.example.journalchat.ui.states.ChatMode
 import com.example.journalchat.ui.theme.Typography
 import com.example.journalchat.ui.theme.nonPrimaryMessageShape
 import com.example.journalchat.ui.theme.primaryMessageShape
@@ -93,24 +95,16 @@ fun ChatScreen(
 
     Scaffold(
         topBar = {
-            if (chatState.selectedMessages.isNotEmpty()) {
-                TopAppBar(
-                    title = viewModel.getSelectedCount().toString(),
-                    navIcon = {
-                        IconButton(onClick = {viewModel.clearSelection()}, Modifier) {
-                            Icon(
-                                Icons.Outlined.Clear,
-                                "Clear selection"
-                            )
-                        }
-                    },
-                    topAppBarScrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(
-                        rememberTopAppBarState()
-                    ),
-                    action = {}
-                )
-            } else {
-                TopAppBar(
+            when (chatState.mode) {
+                ChatMode.Selecting -> SelectionModeTopAppBar(
+                    viewModel.getSelectedCount(),
+                    onDeleteMessage = { viewModel.deleteMessages() },
+                    onEditMessage = { viewModel.startEditing() },
+                    onClearSelection = { viewModel.clearSelection() })
+                ChatMode.Editing -> {
+                    EditingTopAppBar(onClearSelection = {viewModel.clearSelection()})
+                }
+                ChatMode.Chatting -> TopAppBar(
                     title = chatState.chat.name,
                     navIcon = { AppBarNavigationIconBack { navigateUp() } },
                     topAppBarScrollBehavior = scrollBehavior,
@@ -123,7 +117,10 @@ fun ChatScreen(
                         )
                     }
                 )
+
             }
+
+
         },
         bottomBar = { },
         modifier = modifier
@@ -139,7 +136,7 @@ fun ChatScreen(
                 scrollState,
                 modifier = Modifier.weight(1f),
                 onMessageClick = { messageUi ->
-                    if (viewModel.isSelectionMode()) {
+                    if (chatState.mode == ChatMode.Selecting) {
                         viewModel.selectMessage(messageUi)
                     }
                 },
@@ -160,6 +157,77 @@ fun ChatScreen(
 
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EditingTopAppBar(
+    onClearSelection: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    BackHandler {
+        onClearSelection()
+    }
+    TopAppBar(
+        title = stringResource(R.string.editing),
+        navIcon = {
+            IconButton(onClick = { onClearSelection() }, Modifier) {
+                Icon(
+                    Icons.Outlined.Clear,
+                    "Clear selection"
+                )
+            }
+        },
+        topAppBarScrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(
+            rememberTopAppBarState()
+        ),
+        action = {}
+        )
+}
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SelectionModeTopAppBar(
+    selectionCount: Int,
+    onDeleteMessage: () -> Unit,
+    onEditMessage: () -> Unit,
+    onClearSelection: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    BackHandler {
+        onClearSelection()
+    }
+    TopAppBar(
+        title = selectionCount.toString(),
+        navIcon = {
+            IconButton(onClick = { onClearSelection() }, Modifier) {
+                Icon(
+                    Icons.Outlined.Clear,
+                    "Clear selection"
+                )
+            }
+        },
+        topAppBarScrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(
+            rememberTopAppBarState()
+        ),
+        action = {
+            if (selectionCount == 1) {
+                IconButton(onClick = { onEditMessage() }) {
+                    Icon(
+                        Icons.Outlined.Edit,
+                        stringResource(R.string.edit_message)
+                    )
+                }
+            }
+            IconButton(onClick = { onDeleteMessage() }) {
+                Icon(
+                    Icons.Outlined.Delete,
+                    stringResource(R.string.delete_message)
+                )
+            }
+
+        })
 }
 
 @Composable

@@ -18,4 +18,6 @@
     <string name="delete_message">Delete message</string>
     <string name="edit_message">Edit message</string>
     <string name="editing">Editing</string>
+    <string name="confirm_editing">Confirm editing</string>
+    <string name="clear_selection">Clear selection</string>
 </resources>

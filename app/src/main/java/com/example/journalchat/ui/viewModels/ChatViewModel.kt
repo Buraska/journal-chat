@@ -1,5 +1,8 @@
 package com.example.journalchat.ui.viewModels
 
+import android.util.Log
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -49,13 +52,13 @@ class ChatViewModel(
     }
 
     fun sendMessage() {
-        if (chatState.value.input == "") return
+        if (chatState.value.input.text == "") return
         viewModelScope.launch {
             messageRepository.insertItem(
                 Message(
                     0,
                     id,
-                    chatState.value.input,
+                    chatState.value.input.text,
                     true,
                     LocalDateTime.now()
                 )
@@ -64,7 +67,9 @@ class ChatViewModel(
         }
     }
 
-    fun inputChanged(input: String) {
+    fun inputChanged(input: TextFieldValue) {
+//        val currentText = chatState.value.input
+//        val newCursorPosition = currentText.selection.end + (input.text.length - currentText.text.length)
         _chatState.update { currentState -> currentState.copy(input = input) }
     }
 
@@ -106,7 +111,24 @@ class ChatViewModel(
 
     fun stopEditing(){
         clearSelection()
-        inputChanged("")
+        inputChanged(TextFieldValue())
+    }
+
+
+    fun editMessage() {
+        if (chatState.value.selectedMessages.size != 1) {
+            Log.e("editMessage", "Trying editing message while selecting list size is not one")
+            return;
+        }
+        if (chatState.value.input.text == "") return
+
+        val updatedMessage = chatState.value.selectedMessages[0].copy(content = chatState.value.input.text)
+
+        viewModelScope.launch {
+            messageRepository.updateItem(
+                updatedMessage.toMessage()
+                )
+        }
     }
 
     fun switchMode(chatMode: ChatMode){
@@ -124,7 +146,7 @@ class ChatViewModel(
     fun startEditing() {
         if (chatState.value.selectedMessages.size != 1) return
         val message = chatState.value.selectedMessages[0]
-        inputChanged(message.content)
+        inputChanged(TextFieldValue(message.content, TextRange(message.content.length)))
         _chatState.update { currentState ->
             currentState.copy(mode = ChatMode.Editing)
         }

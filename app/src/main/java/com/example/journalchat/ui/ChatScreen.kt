@@ -23,6 +23,8 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.ArrowForward
+import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Clear
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
@@ -55,9 +57,11 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
@@ -101,9 +105,11 @@ fun ChatScreen(
                     onDeleteMessage = { viewModel.deleteMessages() },
                     onEditMessage = { viewModel.startEditing() },
                     onClearSelection = { viewModel.clearSelection() })
+
                 ChatMode.Editing -> {
-                    EditingTopAppBar(onClearSelection = {viewModel.clearSelection()})
+                    EditingTopAppBar(onStopEditing = { viewModel.stopEditing() })
                 }
+
                 ChatMode.Chatting -> TopAppBar(
                     title = chatState.chat.name,
                     navIcon = { AppBarNavigationIconBack { navigateUp() } },
@@ -119,10 +125,7 @@ fun ChatScreen(
                 )
 
             }
-
-
         },
-        bottomBar = { },
         modifier = modifier
             .nestedScroll(scrollBehavior.nestedScrollConnection),
     ) { innerPadding ->
@@ -144,34 +147,36 @@ fun ChatScreen(
                     viewModel.selectMessage(messageUi)
                 }
             )
-            InputTextField(
+            ChatInputField(
                 value = chatState.input,
                 onValueChange = { input -> viewModel.inputChanged(input) },
                 onSendMessage = {
                     viewModel.sendMessage()
                 },
+                onEditMessage = { viewModel.editMessage() },
+                mode = chatState.mode,
                 modifier = Modifier
                     .imePadding()
                     .navigationBarsPadding()
             )
-
         }
     }
 }
 
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditingTopAppBar(
-    onClearSelection: () -> Unit,
+    onStopEditing: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     BackHandler {
-        onClearSelection()
+        onStopEditing()
     }
     TopAppBar(
         title = stringResource(R.string.editing),
         navIcon = {
-            IconButton(onClick = { onClearSelection() }, Modifier) {
+            IconButton(onClick = { onStopEditing() }, Modifier) {
                 Icon(
                     Icons.Outlined.Clear,
                     "Clear selection"
@@ -182,7 +187,7 @@ fun EditingTopAppBar(
             rememberTopAppBarState()
         ),
         action = {}
-        )
+    )
 }
 
 
@@ -204,7 +209,7 @@ fun SelectionModeTopAppBar(
             IconButton(onClick = { onClearSelection() }, Modifier) {
                 Icon(
                     Icons.Outlined.Clear,
-                    "Clear selection"
+                    stringResource(R.string.clear_selection)
                 )
             }
         },
@@ -240,25 +245,14 @@ fun OptionButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
             contentDescription = stringResource(R.string.chat_options)
         )
     }
-
-
-//    Card(elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-//        modifier = modifier.onSizeChanged {
-//            itemHeight = with(density) {it.height.toDp()}
-//        })
-//    {
-//        Box(Modifier
-//            .fillMaxWidth()
-//            .clickable
-//            { isContextMenuVisible = true }
-//            .padding(16.dp))
-//    }
-
-
 }
 
 @Composable
-fun OptionMenu(isContextMenuVisible: Boolean, onDismissRequest: () -> Unit, dpOffset: DpOffset) {
+fun OptionMenu(
+    isContextMenuVisible: Boolean,
+    onDismissRequest: () -> Unit,
+    dpOffset: DpOffset
+) {
     DropdownMenu(
         expanded = isContextMenuVisible,
         onDismissRequest = onDismissRequest,
@@ -419,10 +413,12 @@ fun Message(
 }
 
 @Composable
-fun InputTextField(
-    value: String,
-    onValueChange: (String) -> Unit,
+fun ChatInputField(
+    value: TextFieldValue,
+    onValueChange: (TextFieldValue) -> Unit,
     onSendMessage: () -> Unit,
+    onEditMessage: () -> Unit,
+    mode: ChatMode,
     modifier: Modifier = Modifier
 ) {
 
@@ -449,7 +445,7 @@ fun InputTextField(
                 maxLines = 6,
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Text,
-                    imeAction = ImeAction.Done
+                    imeAction = ImeAction.Default
                 ),
                 textStyle = TextStyle(color = MaterialTheme.colorScheme.inverseSurface),
                 modifier = Modifier
@@ -462,16 +458,26 @@ fun InputTextField(
                     contentDescription = stringResource(R.string.stickers_and_emojis)
                 )
             }
-            IconButton(onClick = onSendMessage) {
-                Icon(
-                    imageVector = Icons.Outlined.Phone,
-                    contentDescription = stringResource(R.string.send_message)
-                )
+            when (mode) {
+                ChatMode.Editing ->
+                    IconButton(onClick = onEditMessage) {
+                        Icon(
+                            imageVector = Icons.Outlined.Check,
+                            contentDescription = stringResource(R.string.confirm_editing)
+                        )
+                    }
+
+                else -> IconButton(onClick = onSendMessage) {
+                    Icon(
+                        imageVector = Icons.Outlined.ArrowForward,
+                        contentDescription = stringResource(R.string.send_message)
+                    )
+                }
             }
+
         }
     }
 }
-
 
 fun LocalDateTime.getTime(): String {
     return this.format(DateTimeFormatter.ofPattern("HH:mm"))

@@ -31,6 +31,9 @@ import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Face
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Phone
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonColors
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
@@ -40,9 +43,12 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ShapeDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
@@ -50,11 +56,19 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusModifier
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
@@ -65,17 +79,21 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.journalchat.AppBarNavigationIconBack
 import com.example.journalchat.NavigationDestination
 import com.example.journalchat.R
 import com.example.journalchat.TopAppBar
 import com.example.journalchat.ui.states.ChatMode
+import com.example.journalchat.ui.theme.JournalChatTheme
+import com.example.journalchat.ui.theme.Shapes
 import com.example.journalchat.ui.theme.Typography
 import com.example.journalchat.ui.theme.nonPrimaryMessageShape
 import com.example.journalchat.ui.theme.primaryMessageShape
 import com.example.journalchat.ui.uiModels.MessageUi
 import com.example.journalchat.ui.viewModels.ChatViewModel
+import org.intellij.lang.annotations.JdkConstants.HorizontalAlignment
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -85,25 +103,40 @@ object ChatScreenDestination : NavigationDestination {
     val routeWithArgs = "$route/{$chatIdArg}"
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(
+    ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class,
+    ExperimentalComposeUiApi::class
+)
 @Composable
 fun ChatScreen(
     navigateUp: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ChatViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
+    val chatState by viewModel.chatState.collectAsState()
+
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
     val scrollState = rememberLazyListState()
-    val chatState by viewModel.chatState.collectAsState()
+
     var isContextMenuVisible by rememberSaveable { mutableStateOf(false) }
+
+    val openAlertDialog = remember { mutableStateOf(false) }
+
+    val focusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
+
 
     Scaffold(
         topBar = {
             when (chatState.mode) {
                 ChatMode.Selecting -> SelectionModeTopAppBar(
                     viewModel.getSelectedCount(),
-                    onDeleteMessage = { viewModel.deleteMessages() },
-                    onEditMessage = { viewModel.startEditing() },
+                    onDeleteMessage = { openAlertDialog.value = true },
+                    onEditMessage = {
+                        viewModel.startEditing()
+                        focusRequester.requestFocus()
+                        keyboardController?.show()
+                    },
                     onClearSelection = { viewModel.clearSelection() })
 
                 ChatMode.Editing -> {
@@ -129,6 +162,12 @@ fun ChatScreen(
         modifier = modifier
             .nestedScroll(scrollBehavior.nestedScrollConnection),
     ) { innerPadding ->
+        if (openAlertDialog.value) {
+            DeleteAlertDialog(
+                onDelete = { viewModel.deleteMessages() },
+                onDismissRequest = { openAlertDialog.value = false },
+                chatState.selectedMessages.size > 1)
+        }
         Column(
             modifier = modifier
                 .fillMaxSize()
@@ -144,7 +183,8 @@ fun ChatScreen(
                     }
                 },
                 onMessageLongClick = { messageUi ->
-                    viewModel.selectMessage(messageUi)
+                    if (chatState.mode != ChatMode.Editing)
+                        viewModel.selectMessage(messageUi)
                 }
             )
             ChatInputField(
@@ -155,6 +195,7 @@ fun ChatScreen(
                 },
                 onEditMessage = { viewModel.editMessage() },
                 mode = chatState.mode,
+                focusRequester = focusRequester,
                 modifier = Modifier
                     .imePadding()
                     .navigationBarsPadding()
@@ -186,7 +227,8 @@ fun EditingTopAppBar(
         topAppBarScrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(
             rememberTopAppBarState()
         ),
-        action = {}
+        action = {},
+        modifier = modifier
     )
 }
 
@@ -232,13 +274,15 @@ fun SelectionModeTopAppBar(
                 )
             }
 
-        })
+        },
+        modifier = modifier
+    )
 }
 
 @Composable
 fun OptionButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
 
-    IconButton(onClick = onClick)
+    IconButton(onClick = onClick, modifier = modifier)
     {
         Icon(
             imageVector = Icons.Outlined.MoreVert,
@@ -251,12 +295,14 @@ fun OptionButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
 fun OptionMenu(
     isContextMenuVisible: Boolean,
     onDismissRequest: () -> Unit,
-    dpOffset: DpOffset
+    dpOffset: DpOffset,
+    modifier: Modifier = Modifier
 ) {
     DropdownMenu(
         expanded = isContextMenuVisible,
         onDismissRequest = onDismissRequest,
-        offset = dpOffset
+        offset = dpOffset,
+        modifier = modifier
     )
     {
         DropdownMenuItem(
@@ -413,12 +459,43 @@ fun Message(
 }
 
 @Composable
+fun DeleteAlertDialog(
+    onDelete: () -> Unit,
+    onDismissRequest: () -> Unit,
+    plural: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val mes = if (plural) stringResource(R.string.messages) else stringResource(R.string.message)
+    Dialog(onDismissRequest) {
+        Card(modifier = modifier, shape = ShapeDefaults.Medium) {
+            Column(modifier = Modifier.padding(16.dp, 16.dp, 16.dp, 8.dp)) {
+                Text(stringResource(R.string.delete_dialog_title, mes), style = Typography.titleMedium, modifier = Modifier)
+                Text(stringResource(R.string.delete_dialog_body, mes), style = Typography.bodyMedium)
+                Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
+                    TextButton(
+                        onClick = { onDismissRequest() }) {
+                        Text("Cancel")
+                    }
+                    TextButton(
+                        onClick = { onDelete(); onDismissRequest() },
+                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                    ) {
+                        Text("Delete")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun ChatInputField(
     value: TextFieldValue,
     onValueChange: (TextFieldValue) -> Unit,
     onSendMessage: () -> Unit,
     onEditMessage: () -> Unit,
     mode: ChatMode,
+    focusRequester: FocusRequester,
     modifier: Modifier = Modifier
 ) {
 
@@ -450,7 +527,8 @@ fun ChatInputField(
                 textStyle = TextStyle(color = MaterialTheme.colorScheme.inverseSurface),
                 modifier = Modifier
                     .padding()
-                    .weight(1f),
+                    .weight(1f)
+                    .focusRequester(focusRequester),
             )
             IconButton(onClick = { /*TODO*/ }) {
                 Icon(
@@ -492,16 +570,7 @@ fun LocalDateTime.getDate(): String {
 @Composable
 fun ChatPreview() {
 
-//    val messages = listOf<MessageUi>(
-//        MessageUi(
-//            null,
-//            "Starting: Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] cmp=com.example.journalchat/.MainActivity }",
-//            date = LocalDateTime.parse(
-//                "2012-12-24 12:24:35",
-//                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-//            )))
-//    val chatState = ChatState("FirstChat", messages)
-//    JournalChatTheme(useDarkTheme = true) {
-//        ChatScreen(chatState, {})
+    DeleteAlertDialog({}, {}, true)
+
 }
 

@@ -58,6 +58,7 @@ class ChatViewModel(
                 Message(
                     0,
                     id,
+                    null,
                     chatState.value.input.text,
                     true,
                     LocalDateTime.now()
@@ -109,7 +110,7 @@ class ChatViewModel(
         }
     }
 
-    fun stopEditing(){
+    fun stopAction(){
         clearSelection()
         inputChanged(TextFieldValue())
     }
@@ -147,9 +148,13 @@ class ChatViewModel(
         if (chatState.value.selectedMessages.size != 1) return
         val message = chatState.value.selectedMessages[0]
         inputChanged(TextFieldValue(message.content, TextRange(message.content.length)))
-        _chatState.update { currentState ->
-            currentState.copy(mode = ChatMode.Editing)
-        }
+        switchMode(ChatMode.Editing)
+    }
+
+    fun startReplying(){
+        if (chatState.value.selectedMessages.size != 1) return
+        inputChanged(TextFieldValue())
+        switchMode(ChatMode.Replying)
     }
 }
 

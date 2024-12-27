@@ -16,6 +16,8 @@ data class Message (
     @ColumnInfo(name = "chat_id")
     val chatId: Long,
 
+    val referenceId: Long?,
+
     val content:String,
     val isPrimary: Boolean = true,
     val date: LocalDateTime

@@ -37,7 +37,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
@@ -52,7 +51,7 @@ import androidx.compose.ui.unit.dp
 import com.example.journalchat.AppBarNavigationDrawer
 import com.example.journalchat.FloatingBottomButton
 import com.example.journalchat.R
-import com.example.journalchat.TopAppBar
+import com.example.journalchat.ChatTopAppBar
 import com.example.journalchat.ui.theme.JournalChatTheme
 import com.example.journalchat.ui.theme.Shapes
 import com.example.journalchat.ui.theme.Typography
@@ -72,7 +71,7 @@ fun ChatListScreen(
     isVisible = scrollBehavior.state.collapsedFraction < 0.3
 
     Scaffold(
-        topBar = {TopAppBar(
+        topBar = {ChatTopAppBar(
             title = stringResource(id = R.string.app_name),
             navIcon = {AppBarNavigationDrawer(exposeDrawer)},
             topAppBarScrollBehavior = scrollBehavior,

@@ -9,6 +9,8 @@ data class MessageUi (
 
     val id: Long = 0,
     val chatId: Long,
+    val referenceId: Long? = null,
+    val reference: MessageUi? = null,
     val content:String,
     val isPrimary: Boolean = true,
     val date: LocalDateTime = LocalDateTime.now(),
@@ -16,10 +18,10 @@ data class MessageUi (
 )
 
 fun MessageUi.toMessage(): Message {
-    return Message(id, chatId, content, isPrimary, date)
+    return Message(id, chatId, referenceId, content, isPrimary, date)
 }
 
 fun Message.toMessageUi(): MessageUi {
-    return MessageUi(id, chatId, content, isPrimary, date)
+    return MessageUi(id, chatId, referenceId, null, content, isPrimary, date)
 }
 

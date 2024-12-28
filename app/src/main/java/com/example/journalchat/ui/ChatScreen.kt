@@ -1,6 +1,7 @@
 package com.example.journalchat.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -14,8 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredSize
-import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -61,7 +61,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.Placeable
+import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
@@ -70,8 +76,10 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -155,7 +163,6 @@ fun ChatScreen(
                         )
                     }
                 )
-
                 ChatMode.Replying -> {
                     ActionTopAppBar(
                         stringResource(R.string.replying),
@@ -200,6 +207,7 @@ fun ChatScreen(
                     viewModel.sendMessage()
                 },
                 onEditMessage = { viewModel.editMessage() },
+                onReplyMessage = {viewModel.replyMessage()},
                 mode = chatState.mode,
                 focusRequester = focusRequester,
                 modifier = Modifier
@@ -433,50 +441,97 @@ fun Message(
         containerColor = MaterialTheme.colorScheme.secondary
     }
 
-        Row(
-            horizontalArrangement = horizontalArrangement,
-            modifier = modifier.drawWithContent {
+    Row(
+        horizontalArrangement = horizontalArrangement,
+        modifier = modifier
+            .drawWithContent {
                 drawContent()
                 if (message.isSelected) drawRect(selectedColor)
             }
-                .combinedClickable(
-                    onClick = { onClick() },
-                    onLongClick = { onLongClick() })
+            .combinedClickable(
+                onClick = { onClick() },
+                onLongClick = { onLongClick() })
+    ) {
+        Card(
+            modifier = Modifier
+                .padding(
+                    dimensionResource(id = R.dimen.padding_medium),
+                    0.dp,
+                    dimensionResource(id = R.dimen.padding_medium),
+                    dimensionResource(id = R.dimen.card_elevation)
+                ),
+            colors = CardDefaults.cardColors(containerColor = containerColor),
+            shape = shape
         ) {
-            Card(
-                modifier = Modifier
-                    .padding(
-                        dimensionResource(id = R.dimen.padding_medium),
-                        0.dp,
-                        dimensionResource(id = R.dimen.padding_medium),
-                        dimensionResource(id = R.dimen.card_elevation)
-                    ),
-                colors = CardDefaults.cardColors(containerColor = containerColor),
-                shape = shape
-            ) {
-
-
-                Column(modifier = Modifier.padding(4.dp)) {
-                    if (message.reference != null){
-                        Text(text = message.reference.content, maxLines = 1)
-                    }
+            SubcomposeLayout(modifier = Modifier.padding(8.dp)) { constraints ->
+                val mainContent = subcompose("mainContent") {
                     Text(
                         text = message.content,
                         style = Typography.bodyMedium,
-                        modifier = Modifier
                     )
-
+                }.first().measure(constraints)
+                val date = subcompose("date"){
                     Text(
                         text = message.date.getTime(),
                         style = Typography.bodySmall,
                         modifier = Modifier
                             .align(Alignment.End)
-                            .padding(2.dp)
-                    )
+                            .padding(6.dp, 6.dp, 0.dp, 0.dp)
+                    )}
+                    .first().measure(constraints)
+
+                var reply: Placeable? = null
+                if (message.reference != null) {
+                    reply = subcompose("reply") {
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.background),
+                            modifier = Modifier){
+                            Text(
+                                text = message.reference.content,
+                                style = Typography.bodyMedium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.padding(8.dp))
+                        }
+                    }.first().measure(constraints)
+                }
+
+                val replyHeight = reply?.height ?: 0
+                val replyWidth = reply?.width ?: 0
+                var cardWidth = maxOf(replyWidth, mainContent.width)
+                var cardHeight = mainContent.height + date.height + replyHeight
+                var isShort = false
+                if (cardWidth < date.width){
+                    cardWidth += date.width
+                    cardHeight -= date.height
+                    isShort = true
+                }
+
+                var replyArea: Placeable? = null
+                if (message.reference != null) {
+                    replyArea = subcompose("replyArea"){
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.background),
+                            modifier = Modifier.size(DpSize(cardWidth.toDp(), replyHeight.toDp()))){
+                        }
+                    }.first().measure(constraints)
+                }
+                layout(cardWidth, cardHeight){
+                    var offset = 0
+                    if (reply != null && replyArea != null){
+                        replyArea.place(0,0)
+                        reply.place(0,0)
+                        offset = reply.height
+                    }
+                    mainContent.place(0, offset)
+                    offset += mainContent.height
+                    if (isShort) offset -= date.height
+                    date.place(cardWidth - date.width, offset)
                 }
             }
         }
     }
+}
 
 @Composable
 fun DeleteAlertDialog(
@@ -523,7 +578,8 @@ fun ChatInputField(
     onEditMessage: () -> Unit,
     mode: ChatMode,
     focusRequester: FocusRequester,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onReplyMessage: () -> Unit
 ) {
 
     Surface(
@@ -571,6 +627,13 @@ fun ChatInputField(
                             contentDescription = stringResource(R.string.confirm_editing)
                         )
                     }
+                ChatMode.Replying ->
+                    IconButton(onClick = onReplyMessage) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.send),
+                            contentDescription = stringResource(R.string.reply)
+                        )
+                    }
 
                 else -> IconButton(onClick = onSendMessage) {
                     Icon(
@@ -597,7 +660,16 @@ fun LocalDateTime.getDate(): String {
 @Composable
 fun ChatPreview() {
 
-    val ref = MessageUi(0,0,null, null, "Lorem ispum nother victory that march will bee seen in the long darkness Morowind")
-    Message(message = MessageUi(0, 0, 0, ref,"asdsa"), onClick = { /*TODO*/ }, onLongClick = { /*TODO*/ })
+    val ref = MessageUi(
+        0,
+        0,
+        null,
+        null,
+        "Lo"
+    )
+    Message(
+        message = MessageUi(0, 0, 0, ref, "Hi!"),
+        onClick = { /*TODO*/ },
+        onLongClick = { /*TODO*/ })
 }
 

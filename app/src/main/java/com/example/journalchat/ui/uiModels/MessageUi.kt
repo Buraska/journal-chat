@@ -25,3 +25,6 @@ fun Message.toMessageUi(): MessageUi {
     return MessageUi(id, chatId, referenceId, null, content, isPrimary, date)
 }
 
+fun Message.toMessageUi(reference: MessageUi?): MessageUi {
+    return MessageUi(id, chatId, referenceId, reference, content, isPrimary, date)
+}

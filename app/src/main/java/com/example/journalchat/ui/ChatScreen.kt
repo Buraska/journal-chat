@@ -1,6 +1,7 @@
 package com.example.journalchat.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -14,7 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -23,16 +24,12 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Clear
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Face
 import androidx.compose.material.icons.outlined.MoreVert
-import androidx.compose.material.icons.outlined.Phone
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -43,12 +40,12 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ShapeDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
@@ -62,38 +59,40 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusModifier
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.layout.Placeable
+import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.dimensionResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.journalchat.AppBarNavigationIconBack
 import com.example.journalchat.NavigationDestination
 import com.example.journalchat.R
-import com.example.journalchat.TopAppBar
+import com.example.journalchat.ChatTopAppBar
 import com.example.journalchat.ui.states.ChatMode
-import com.example.journalchat.ui.theme.JournalChatTheme
-import com.example.journalchat.ui.theme.Shapes
 import com.example.journalchat.ui.theme.Typography
 import com.example.journalchat.ui.theme.nonPrimaryMessageShape
 import com.example.journalchat.ui.theme.primaryMessageShape
 import com.example.journalchat.ui.uiModels.MessageUi
 import com.example.journalchat.ui.viewModels.ChatViewModel
-import org.intellij.lang.annotations.JdkConstants.HorizontalAlignment
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -137,13 +136,21 @@ fun ChatScreen(
                         focusRequester.requestFocus()
                         keyboardController?.show()
                     },
-                    onClearSelection = { viewModel.clearSelection() })
+                    onClearSelection = { viewModel.clearSelection() },
+                    onReply = {
+                        viewModel.startReplying()
+                        focusRequester.requestFocus()
+                        keyboardController?.show()
+                    },
+                    onForward = {})
 
                 ChatMode.Editing -> {
-                    EditingTopAppBar(onStopEditing = { viewModel.stopEditing() })
+                    ActionTopAppBar(
+                        stringResource(id = R.string.editing),
+                        onStopAction = { viewModel.stopAction() })
                 }
 
-                ChatMode.Chatting -> TopAppBar(
+                ChatMode.Chatting -> ChatTopAppBar(
                     title = chatState.chat.name,
                     navIcon = { AppBarNavigationIconBack { navigateUp() } },
                     topAppBarScrollBehavior = scrollBehavior,
@@ -156,6 +163,11 @@ fun ChatScreen(
                         )
                     }
                 )
+                ChatMode.Replying -> {
+                    ActionTopAppBar(
+                        stringResource(R.string.replying),
+                        onStopAction = { viewModel.stopAction() })
+                }
 
             }
         },
@@ -166,7 +178,8 @@ fun ChatScreen(
             DeleteAlertDialog(
                 onDelete = { viewModel.deleteMessages() },
                 onDismissRequest = { openAlertDialog.value = false },
-                chatState.selectedMessages.size > 1)
+                chatState.selectedMessages.size > 1
+            )
         }
         Column(
             modifier = modifier
@@ -194,6 +207,7 @@ fun ChatScreen(
                     viewModel.sendMessage()
                 },
                 onEditMessage = { viewModel.editMessage() },
+                onReplyMessage = {viewModel.replyMessage()},
                 mode = chatState.mode,
                 focusRequester = focusRequester,
                 modifier = Modifier
@@ -207,17 +221,18 @@ fun ChatScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EditingTopAppBar(
-    onStopEditing: () -> Unit,
+fun ActionTopAppBar(
+    title: String,
+    onStopAction: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     BackHandler {
-        onStopEditing()
+        onStopAction()
     }
-    TopAppBar(
-        title = stringResource(R.string.editing),
+    ChatTopAppBar(
+        title = title,
         navIcon = {
-            IconButton(onClick = { onStopEditing() }, Modifier) {
+            IconButton(onClick = { onStopAction() }, Modifier) {
                 Icon(
                     Icons.Outlined.Clear,
                     "Clear selection"
@@ -240,14 +255,16 @@ fun SelectionModeTopAppBar(
     onDeleteMessage: () -> Unit,
     onEditMessage: () -> Unit,
     onClearSelection: () -> Unit,
+    onReply: () -> Unit,
+    onForward: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     BackHandler {
         onClearSelection()
     }
     TopAppBar(
-        title = selectionCount.toString(),
-        navIcon = {
+        title = { Text(text = selectionCount.toString(), style = Typography.displayLarge) },
+        navigationIcon = {
             IconButton(onClick = { onClearSelection() }, Modifier) {
                 Icon(
                     Icons.Outlined.Clear,
@@ -255,22 +272,35 @@ fun SelectionModeTopAppBar(
                 )
             }
         },
-        topAppBarScrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(
+        scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(
             rememberTopAppBarState()
         ),
-        action = {
+        actions = {
             if (selectionCount == 1) {
+                IconButton(onClick = { onReply() }) {
+                    Icon(
+                        painterResource(id = R.drawable.reply),
+                        stringResource(R.string.reply)
+                    )
+                }
                 IconButton(onClick = { onEditMessage() }) {
                     Icon(
                         Icons.Outlined.Edit,
                         stringResource(R.string.edit_message)
                     )
+
                 }
             }
             IconButton(onClick = { onDeleteMessage() }) {
                 Icon(
                     Icons.Outlined.Delete,
                     stringResource(R.string.delete_message)
+                )
+            }
+            IconButton(onClick = { onForward() }) {
+                Icon(
+                    painterResource(id = R.drawable.forward),
+                    stringResource(R.string.forward)
                 )
             }
 
@@ -410,7 +440,9 @@ fun Message(
         shape = nonPrimaryMessageShape
         containerColor = MaterialTheme.colorScheme.secondary
     }
+
     Row(
+        horizontalArrangement = horizontalArrangement,
         modifier = modifier
             .drawWithContent {
                 drawContent()
@@ -418,40 +450,83 @@ fun Message(
             }
             .combinedClickable(
                 onClick = { onClick() },
-                onLongClick = { onLongClick() }),
-        horizontalArrangement = horizontalArrangement,
+                onLongClick = { onLongClick() })
     ) {
-        Row(
-            horizontalArrangement = horizontalArrangement,
-            modifier = Modifier.fillMaxWidth(0.95f)
+        Card(
+            modifier = Modifier
+                .padding(
+                    dimensionResource(id = R.dimen.padding_medium),
+                    0.dp,
+                    dimensionResource(id = R.dimen.padding_medium),
+                    dimensionResource(id = R.dimen.card_elevation)
+                ),
+            colors = CardDefaults.cardColors(containerColor = containerColor),
+            shape = shape
         ) {
-            Card(
-                modifier = Modifier
-                    .padding(
-                        dimensionResource(id = R.dimen.padding_medium),
-                        0.dp,
-                        dimensionResource(id = R.dimen.padding_medium),
-                        dimensionResource(id = R.dimen.card_elevation)
-                    )
-                    .wrapContentWidth(),
-                colors = CardDefaults.cardColors(containerColor = containerColor),
-                shape = shape
-            ) {
-                Column(modifier = Modifier.padding(4.dp)) {
+            SubcomposeLayout(modifier = Modifier.padding(8.dp)) { constraints ->
+                val mainContent = subcompose("mainContent") {
                     Text(
                         text = message.content,
                         style = Typography.bodyMedium,
-                        modifier = Modifier
-                            .wrapContentWidth(Alignment.End)
                     )
-
+                }.first().measure(constraints)
+                val date = subcompose("date"){
                     Text(
                         text = message.date.getTime(),
                         style = Typography.bodySmall,
                         modifier = Modifier
                             .align(Alignment.End)
-                            .padding(2.dp)
-                    )
+                            .padding(6.dp, 6.dp, 0.dp, 0.dp)
+                    )}
+                    .first().measure(constraints)
+
+                var reply: Placeable? = null
+                if (message.reference != null) {
+                    reply = subcompose("reply") {
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.background),
+                            modifier = Modifier){
+                            Text(
+                                text = message.reference.content,
+                                style = Typography.bodyMedium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.padding(8.dp))
+                        }
+                    }.first().measure(constraints)
+                }
+
+                val replyHeight = reply?.height ?: 0
+                val replyWidth = reply?.width ?: 0
+                var cardWidth = maxOf(replyWidth, mainContent.width)
+                var cardHeight = mainContent.height + date.height + replyHeight
+                var isShort = false
+                if (cardWidth < date.width){
+                    cardWidth += date.width
+                    cardHeight -= date.height
+                    isShort = true
+                }
+
+                var replyArea: Placeable? = null
+                if (message.reference != null) {
+                    replyArea = subcompose("replyArea"){
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.background),
+                            modifier = Modifier.size(DpSize(cardWidth.toDp(), replyHeight.toDp()))){
+                        }
+                    }.first().measure(constraints)
+                }
+                layout(cardWidth, cardHeight){
+                    var offset = 0
+                    if (reply != null && replyArea != null){
+                        replyArea.place(0,0)
+                        reply.place(0,0)
+                        offset = reply.height
+                    }
+                    mainContent.place(0, offset)
+                    offset += mainContent.height
+                    if (isShort) offset -= date.height
+                    date.place(cardWidth - date.width, offset)
                 }
             }
         }
@@ -469,8 +544,15 @@ fun DeleteAlertDialog(
     Dialog(onDismissRequest) {
         Card(modifier = modifier, shape = ShapeDefaults.Medium) {
             Column(modifier = Modifier.padding(16.dp, 16.dp, 16.dp, 8.dp)) {
-                Text(stringResource(R.string.delete_dialog_title, mes), style = Typography.titleMedium, modifier = Modifier)
-                Text(stringResource(R.string.delete_dialog_body, mes), style = Typography.bodyMedium)
+                Text(
+                    stringResource(R.string.delete_dialog_title, mes),
+                    style = Typography.titleMedium,
+                    modifier = Modifier
+                )
+                Text(
+                    stringResource(R.string.delete_dialog_body, mes),
+                    style = Typography.bodyMedium
+                )
                 Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
                     TextButton(
                         onClick = { onDismissRequest() }) {
@@ -496,7 +578,8 @@ fun ChatInputField(
     onEditMessage: () -> Unit,
     mode: ChatMode,
     focusRequester: FocusRequester,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onReplyMessage: () -> Unit
 ) {
 
     Surface(
@@ -544,10 +627,17 @@ fun ChatInputField(
                             contentDescription = stringResource(R.string.confirm_editing)
                         )
                     }
+                ChatMode.Replying ->
+                    IconButton(onClick = onReplyMessage) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.send),
+                            contentDescription = stringResource(R.string.reply)
+                        )
+                    }
 
                 else -> IconButton(onClick = onSendMessage) {
                     Icon(
-                        imageVector = Icons.Outlined.ArrowForward,
+                        painter = painterResource(id = R.drawable.send),
                         contentDescription = stringResource(R.string.send_message)
                     )
                 }
@@ -570,7 +660,16 @@ fun LocalDateTime.getDate(): String {
 @Composable
 fun ChatPreview() {
 
-    DeleteAlertDialog({}, {}, true)
-
+    val ref = MessageUi(
+        0,
+        0,
+        null,
+        null,
+        "Lo"
+    )
+    Message(
+        message = MessageUi(0, 0, 0, ref, "Hi!"),
+        onClick = { /*TODO*/ },
+        onLongClick = { /*TODO*/ })
 }
 

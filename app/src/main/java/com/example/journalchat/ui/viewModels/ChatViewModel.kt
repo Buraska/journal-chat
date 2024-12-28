@@ -44,7 +44,13 @@ class ChatViewModel(
                 .map { messages ->
                     ChatState(
                         chat = chatRepository.getStream(id).filterNotNull().first().toChatUi(),
-                        messages = messages.map { it.toMessageUi() }
+                        messages = messages.map {message ->
+                            var ref: Message? = null
+                            if (message.referenceId != null){
+                                ref = messages.find { it.id == message.referenceId }
+                            }
+                            message.toMessageUi(ref?.toMessageUi())
+                        }
                     )
                 }
                 .collect { _chatState.value = it }
@@ -115,22 +121,6 @@ class ChatViewModel(
     }
 
 
-    fun editMessage() {
-        if (chatState.value.selectedMessages.size != 1) {
-            Log.e("editMessage", "Trying editing message while selecting list size is not one")
-            return;
-        }
-        if (chatState.value.input.text == "") return
-
-        val updatedMessage = chatState.value.selectedMessages[0].copy(content = chatState.value.input.text)
-
-        viewModelScope.launch {
-            messageRepository.updateItem(
-                updatedMessage.toMessage()
-                )
-        }
-    }
-
     fun switchMode(chatMode: ChatMode){
         _chatState.update { currentState ->
             currentState.copy(mode = chatMode)
@@ -149,6 +139,41 @@ class ChatViewModel(
         inputChanged(TextFieldValue(message.content, TextRange(message.content.length)))
         _chatState.update { currentState ->
             currentState.copy(mode = ChatMode.Editing)
+        }
+    }
+
+
+    fun editMessage() {
+        if (chatState.value.selectedMessages.size != 1) {
+            Log.e("editMessage", "Trying editing message while selecting list size is not one")
+            return;
+        }
+        if (chatState.value.input.text == "") return
+
+        val updatedMessage = chatState.value.selectedMessages[0].copy(content = chatState.value.input.text)
+
+        viewModelScope.launch {
+            messageRepository.updateItem(
+                updatedMessage.toMessage()
+            )
+        }
+    }
+    fun replyMessage() {
+        if (chatState.value.selectedMessages.size != 1) {
+            Log.e("replyMessage", "Trying reply on message while selecting list size is not one")
+            return;
+        }
+
+        if (chatState.value.input.text == "") return
+
+        val selectedMessage = chatState.value.selectedMessages[0]
+
+        val newMessage = Message(0, id, selectedMessage.id, chatState.value.input.text, true, LocalDateTime.now())
+
+        viewModelScope.launch {
+            messageRepository.insertItem(
+                newMessage
+            )
         }
     }
 }

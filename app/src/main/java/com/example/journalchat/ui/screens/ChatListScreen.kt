@@ -1,10 +1,11 @@
-package com.example.journalchat.ui
+package com.example.journalchat.ui.screens
 
 import android.graphics.drawable.Drawable
 import android.util.Log
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,11 +34,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
@@ -49,51 +50,65 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.journalchat.AppBarNavigationDrawer
 import com.example.journalchat.FloatingBottomButton
 import com.example.journalchat.R
-import com.example.journalchat.TopAppBar
+import com.example.journalchat.ChatTopAppBar
+import com.example.journalchat.NavigationDestination
+import com.example.journalchat.ui.AppViewModelProvider
 import com.example.journalchat.ui.theme.JournalChatTheme
 import com.example.journalchat.ui.theme.Shapes
 import com.example.journalchat.ui.theme.Typography
 import com.example.journalchat.ui.uiModels.ChatUi
+import com.example.journalchat.ui.viewModels.ChatListViewModel
 
+object ChatListScreenDestination : NavigationDestination {
+    override val route = "chatList"
+}
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatListScreen(
-    chatList: List<ChatUi>,
-    onButtonClick: () -> Unit,
-    exposeDrawer:  () -> Unit,
+    onCreateButton: () -> Unit,
+    exposeDrawer: () -> Unit,
     onItemClicked: (Long) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: ChatListViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
+    val chatListState = viewModel.chatListState.collectAsState()
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
     var isVisible by remember { mutableStateOf(false) }
     isVisible = scrollBehavior.state.collapsedFraction < 0.3
 
     Scaffold(
-        topBar = {TopAppBar(
-            title = stringResource(id = R.string.app_name),
-            navIcon = {AppBarNavigationDrawer(exposeDrawer)},
-            topAppBarScrollBehavior = scrollBehavior,
-            action = {SearchButton()}
-        )},
+        topBar = {
+            ChatTopAppBar(
+                title = stringResource(id = R.string.app_name),
+                navIcon = { AppBarNavigationDrawer(exposeDrawer) },
+                topAppBarScrollBehavior = scrollBehavior,
+                action = { SearchButton() }
+            )
+        },
         bottomBar = { },
-        floatingActionButton = {            FloatingBottomButton(
-            imageVector = Icons.Outlined.Add,
-            buttonDescription = stringResource(R.string.create_chat),
-            isVisible = isVisible,
-            onClick = onButtonClick,
-        )},
+        floatingActionButton = {
+            FloatingBottomButton(
+                imageVector = Icons.Outlined.Add,
+                buttonDescription = stringResource(R.string.create_chat),
+                isVisible = isVisible,
+                onClick = onCreateButton,
+            )
+        },
         modifier = modifier
             .fillMaxSize()
             .nestedScroll(scrollBehavior.nestedScrollConnection)
-    ){ innerPadding ->
-        Box(modifier = modifier
-            .fillMaxSize()
-            .padding(innerPadding))
+    ) { innerPadding ->
+        Box(
+            modifier = modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+        )
         {
-            ChatList(chatList, onItemClicked)
+            ChatList(chatListState.value.chats, onItemClicked, onLongClick = {})
         }
     }
 }
@@ -103,25 +118,24 @@ fun ChatListScreen(
 fun ChatList(
     chatList: List<ChatUi>,
     onItemClicked: (Long) -> Unit,
+    onLongClick: () -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(0.dp)
 ) {
-
-
     LazyColumn(
         verticalArrangement = Arrangement.spacedBy(2.dp),
         contentPadding = contentPadding,
         modifier = modifier
     ) {
         itemsIndexed(chatList) { index, chat ->
-            ChatItem(chatItem = chat, onItemClicked = onItemClicked)
+            ChatItem(chatItem = chat, onItemClicked = onItemClicked, onLongClick = onLongClick)
         }
 
     }
 }
 
 @Composable
-fun SearchButton(){
+fun SearchButton() {
     IconButton(onClick = { /*TODO*/ }) {
         Icon(
             imageVector = Icons.Outlined.Search, contentDescription = stringResource(
@@ -131,21 +145,26 @@ fun SearchButton(){
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ChatItem(
     chatItem: ChatUi,
     icon: Drawable? = null,
     onItemClicked: (Long) -> Unit,
+    onLongClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .clip(Shapes.medium).clickable
-            {
-                Log.i("ChatListScreen.ChatItem", "Click on ChatItem: ${chatItem}")
-                onItemClicked(chatItem.id)
-            },
+            .clip(Shapes.medium)
+            .combinedClickable(
+                onClick =
+                {
+                    Log.i("ChatListScreen.ChatItem", "Click on ChatItem: ${chatItem}")
+                    onItemClicked(chatItem.id)
+                },
+                onLongClick = { onLongClick() }),
         elevation = CardDefaults.cardElevation(defaultElevation = dimensionResource(id = R.dimen.card_elevation))
     ) {
 
@@ -177,7 +196,7 @@ fun ChatItem(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = if (chatItem.messages.size > 0) chatItem.messages[0].content else "",
+                    text = if (chatItem.messages.isNotEmpty()) chatItem.messages[0].content else "",
                     style = Typography.bodyMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -196,6 +215,7 @@ fun ChatListPreview() {
         ChatList(
             chatList = listOf(),
             onItemClicked = {},
+            onLongClick = {},
             modifier = Modifier.background(MaterialTheme.colorScheme.background)
         )
     }

@@ -16,5 +16,6 @@ data class ChatState(
 enum class ChatMode {
     Chatting,
     Editing,
-    Selecting
+    Selecting,
+    Replying
 }

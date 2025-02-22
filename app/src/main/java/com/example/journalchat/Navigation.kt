@@ -13,37 +13,32 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.example.journalchat.ui.ChatScreen
-import com.example.journalchat.ui.ChatScreenDestination
-import com.example.journalchat.ui.routes.ChatListRoute
-import com.example.journalchat.ui.routes.CreateChatRoute
+import com.example.journalchat.ui.screens.ChatListScreen
+import com.example.journalchat.ui.screens.ChatScreen
+import com.example.journalchat.ui.screens.ChatScreenDestination
+import com.example.journalchat.ui.screens.ChatCreationScreen
+import com.example.journalchat.ui.screens.ChatCreationScreenDestination
+import com.example.journalchat.ui.screens.ChatListScreenDestination
 
-enum class JournalChatScreen(val title: String) {
-    Start("start"),
-    CreateChat("create_chat"),
-    Chat("chat/{chatName}")
-}
-
-
-
-
+val homeRoute = ChatListScreenDestination.route
 @Composable
 fun JournalNavHost(
     navController: NavHostController = rememberNavController()
 ) {
+
         NavHost(
             navController = navController,
-            startDestination = JournalChatScreen.Start.title,
+            startDestination =  homeRoute,
         ) {
 
-            composable(route = JournalChatScreen.Start.title) {
-                ChatListRoute(
-                    onCreateButton =  { navController.navigate(JournalChatScreen.CreateChat.title) },
+            composable(route = ChatListScreenDestination.route) {
+                ChatListScreen(
+                    onCreateButton =  { navController.navigate(ChatCreationScreenDestination.route) },
                     exposeDrawer = { },
                     onItemClicked = {chatId -> navController.navigate("chat/$chatId") })
             }
-            composable(route = JournalChatScreen.CreateChat.title) {
-                CreateChatRoute(navigateUp =  { navController.navigateUpOrAtHome()})
+            composable(route = ChatCreationScreenDestination.route) {
+                ChatCreationScreen(navigateUp =  { navController.navigateUpOrAtHome()})
             }
             composable(route = ChatScreenDestination.routeWithArgs,
                 arguments = listOf(navArgument(ChatScreenDestination.chatIdArg){type = NavType.LongType})) {
@@ -54,7 +49,7 @@ fun JournalNavHost(
 
 fun NavHostController.navigateUpOrAtHome(){
     if (!this.popBackStack()){
-        this.navigate(JournalChatScreen.Start.name)
+        this.navigate(homeRoute)
     }
 }
 

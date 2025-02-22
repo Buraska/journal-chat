@@ -52,7 +52,7 @@ class ChatViewModel(
                             message.toMessageUi(ref?.toMessageUi())
                         }
                     )
-                }
+               }
                 .collect { _chatState.value = it }
         }
     }

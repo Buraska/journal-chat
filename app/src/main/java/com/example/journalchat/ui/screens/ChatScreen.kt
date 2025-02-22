@@ -1,7 +1,6 @@
-package com.example.journalchat.ui
+package com.example.journalchat.ui.screens
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -61,10 +60,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.layout.SubcomposeLayout
@@ -87,6 +82,7 @@ import com.example.journalchat.AppBarNavigationIconBack
 import com.example.journalchat.NavigationDestination
 import com.example.journalchat.R
 import com.example.journalchat.ChatTopAppBar
+import com.example.journalchat.ui.AppViewModelProvider
 import com.example.journalchat.ui.states.ChatMode
 import com.example.journalchat.ui.theme.Typography
 import com.example.journalchat.ui.theme.nonPrimaryMessageShape

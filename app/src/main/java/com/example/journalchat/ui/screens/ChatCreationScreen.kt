@@ -1,4 +1,4 @@
-package com.example.journalchat.ui
+package com.example.journalchat.ui.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -41,11 +41,15 @@ import com.example.journalchat.AppBarNavigationIconBack
 import com.example.journalchat.FloatingBottomButton
 import com.example.journalchat.R
 import com.example.journalchat.ChatTopAppBar
+import com.example.journalchat.NavigationDestination
+import com.example.journalchat.ui.AppViewModelProvider
 import com.example.journalchat.ui.theme.Shapes
 import com.example.journalchat.ui.viewModels.CreateChatViewModel
 import kotlinx.coroutines.launch
 
-
+object ChatCreationScreenDestination : NavigationDestination {
+    override val route = "chatCreation"
+}
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatCreationScreen(

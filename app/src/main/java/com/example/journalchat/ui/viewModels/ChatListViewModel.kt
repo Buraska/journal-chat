@@ -24,7 +24,4 @@ class ChatListViewModel(chatRepository: ChatRepository) : ViewModel() {
     val chatListState: StateFlow<ChatListState> =
         chatRepository.getAllStream().map { ChatListState(it.map { it.toChatUi() }) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), ChatListState(listOf()))
-
-
-
 }

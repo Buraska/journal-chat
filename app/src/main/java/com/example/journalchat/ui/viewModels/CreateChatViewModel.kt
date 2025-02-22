@@ -11,11 +11,8 @@ import com.example.journalchat.ui.validatiors.ChatCreationValidator
 import com.example.journalchat.ui.uiModels.toChat
 
 class CreateChatViewModel(private val chatRepository: ChatRepository) : ViewModel() {
-
-
     var chatState by mutableStateOf(ChatCreationState())
     private set
-
 
     fun nameChanged(name: String){
         chatState = chatState.copy(name = name)

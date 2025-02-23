@@ -103,8 +103,11 @@ fun ChatListScreen(
 
                 ChatListMode.Selecting -> SelectionModeChatListTopAppBar(
                     selectionCount = viewModel.getSelectedCount(),
-                    onDeleteChat = {openAlertDialog.value = !openAlertDialog.value},
-                    onEditChat = { onEditClicked(chatListState.selectedChats[0].id) },
+                    onDeleteChat = { openAlertDialog.value = !openAlertDialog.value },
+                    onEditChat = {
+                        onEditClicked(chatListState.selectedChats[0].id)
+                        viewModel.clearSelection()
+                    },
                     onClearSelection = viewModel::clearSelection
                 )
             }
@@ -128,7 +131,7 @@ fun ChatListScreen(
             if (chatListState.selectedChats.count() > 1) {
                 notificationBody = stringResource(id = R.string.delete_chat_dialog_body_plural)
                 notificationTitle = stringResource(id = R.string.delete_chat_dialog_title_plural)
-            }else{
+            } else {
                 notificationBody = stringResource(id = R.string.delete_chat_dialog_body_singular)
                 notificationTitle = stringResource(id = R.string.delete_chat_dialog_title_singular)
             }
@@ -146,12 +149,15 @@ fun ChatListScreen(
                 .padding(innerPadding)
         )
         {
-            ChatList(chatListState.chats,
+            ChatList(
+                chatListState.chats,
                 onItemClicked = {
-                    if (chatListState.chatListMode == ChatListMode.Default){onItemClicked(it)}
-                    else viewModel.selectChat(it)
-                                },
-                onLongClick = viewModel::selectChat)
+                    if (chatListState.chatListMode == ChatListMode.Default) {
+                        onItemClicked(it)
+                    } else viewModel.selectChat(it)
+                },
+                onLongClick = viewModel::selectChat
+            )
         }
     }
 }

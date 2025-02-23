@@ -101,6 +101,7 @@ object ChatScreenDestination : NavigationDestination {
 @Composable
 fun ChatScreen(
     navigateUp: () -> Unit,
+    onEditChatClicked: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ChatViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
@@ -147,9 +148,9 @@ fun ChatScreen(
                     action = {
                         OptionButton(onClick = { isContextMenuVisible = true })
                         OptionMenu(
-                            isContextMenuVisible,
-                            { isContextMenuVisible = false },
-                            DpOffset.Zero
+                            isContextMenuVisible = isContextMenuVisible,
+                            onEditChatClicked = { onEditChatClicked() },
+                            onDismissRequest = { isContextMenuVisible = false },
                         )
                     }
                 )
@@ -325,29 +326,29 @@ fun OptionButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
 @Composable
 fun OptionMenu(
     isContextMenuVisible: Boolean,
+    onEditChatClicked: () -> Unit,
     onDismissRequest: () -> Unit,
-    dpOffset: DpOffset,
     modifier: Modifier = Modifier
 ) {
     DropdownMenu(
         expanded = isContextMenuVisible,
         onDismissRequest = onDismissRequest,
-        offset = dpOffset,
+        offset = DpOffset.Zero,
         modifier = modifier
     )
     {
         DropdownMenuItem(
-            text = { Text(stringResource(R.string.delete)) },
+            text = { Text(stringResource(R.string.edit)) },
             trailingIcon = {
                 Icon(
-                    imageVector = Icons.Outlined.Delete, contentDescription = stringResource(
+                    imageVector = Icons.Outlined.Edit, contentDescription = stringResource(
                         R.string.deletion_icon
                     )
                 )
             },
             onClick =
             {
-
+                onEditChatClicked()
                 onDismissRequest()
             }
         )

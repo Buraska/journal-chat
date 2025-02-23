@@ -18,6 +18,7 @@ import com.example.journalchat.ui.uiModels.toMessageUi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -40,20 +41,20 @@ class ChatViewModel(
 
     init {
         viewModelScope.launch {
-            messageRepository.getAllStream(id).filterNotNull()
-                .map { messages ->
-                    ChatState(
-                        chat = chatRepository.getStream(id).filterNotNull().first().toChatUi(),
-                        messages = messages.map {message ->
-                            var ref: Message? = null
-                            if (message.referenceId != null){
-                                ref = messages.find { it.id == message.referenceId }
-                            }
-                            message.toMessageUi(ref?.toMessageUi())
+            val chatFlow = chatRepository.getStream(id).filterNotNull()
+            val messageFlow = messageRepository.getAllStream(id).filterNotNull()
+            combine(chatFlow, messageFlow) { chat, messages ->
+                ChatState(
+                    chat = chat.toChatUi(),
+                    messages = messages.map { message ->
+                        var ref: Message? = null
+                        if (message.referenceId != null) {
+                            ref = messages.find { it.id == message.referenceId }
                         }
-                    )
-               }
-                .collect { _chatState.value = it }
+                        message.toMessageUi(ref?.toMessageUi())
+                    })
+            }.collect{_chatState.value = it}
+
         }
     }
 
@@ -102,11 +103,10 @@ class ChatViewModel(
                 )
             )
         }
-        if (chatState.value.selectedMessages.isEmpty()){
+        if (chatState.value.selectedMessages.isEmpty()) {
             switchMode(ChatMode.Chatting)
         }
     }
-
 
 
     fun clearSelection() {
@@ -116,13 +116,13 @@ class ChatViewModel(
         }
     }
 
-    fun stopAction(){
+    fun stopAction() {
         clearSelection()
         inputChanged(TextFieldValue())
     }
 
 
-    fun switchMode(chatMode: ChatMode){
+    fun switchMode(chatMode: ChatMode) {
         _chatState.update { currentState ->
             currentState.copy(mode = chatMode)
         }
@@ -141,7 +141,7 @@ class ChatViewModel(
         switchMode(ChatMode.Editing)
     }
 
-    fun startReplying(){
+    fun startReplying() {
         if (chatState.value.selectedMessages.size != 1) return
         inputChanged(TextFieldValue())
         switchMode(ChatMode.Replying)
@@ -155,7 +155,8 @@ class ChatViewModel(
         }
         if (chatState.value.input.text == "") return
 
-        val updatedMessage = chatState.value.selectedMessages[0].copy(content = chatState.value.input.text)
+        val updatedMessage =
+            chatState.value.selectedMessages[0].copy(content = chatState.value.input.text)
 
         viewModelScope.launch {
             messageRepository.updateItem(
@@ -163,6 +164,7 @@ class ChatViewModel(
             )
         }
     }
+
     fun replyMessage() {
         if (chatState.value.selectedMessages.size != 1) {
             Log.e("replyMessage", "Trying reply on message while selecting list size is not one")
@@ -173,7 +175,14 @@ class ChatViewModel(
 
         val selectedMessage = chatState.value.selectedMessages[0]
 
-        val newMessage = Message(0, id, selectedMessage.id, chatState.value.input.text, true, LocalDateTime.now())
+        val newMessage = Message(
+            0,
+            id,
+            selectedMessage.id,
+            chatState.value.input.text,
+            true,
+            LocalDateTime.now()
+        )
 
         viewModelScope.launch {
             messageRepository.insertItem(

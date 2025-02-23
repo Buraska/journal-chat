@@ -3,7 +3,7 @@
     <string name="chat_icon">Chat Icon</string>
     <string name="menu">menu</string>
     <string name="search">search\n</string>
-    <string name="edit">edit</string>
+    <string name="edit">Edit</string>
     <string name="add">Create chat</string>
     <string name="create_chat">Create chat</string>
     <string name="enter_chat_name">Enter chat name</string>

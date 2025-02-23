@@ -1,5 +1,6 @@
 package com.example.journalchat
 
+import android.util.Log
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.List
@@ -21,6 +22,7 @@ import com.example.journalchat.ui.screens.ChatCreationScreenDestination
 import com.example.journalchat.ui.screens.ChatEditionDestination
 import com.example.journalchat.ui.screens.ChatEditionScreen
 import com.example.journalchat.ui.screens.ChatListScreenDestination
+import kotlin.math.log
 
 val homeRoute = ChatListScreenDestination.route
 
@@ -49,7 +51,12 @@ fun JournalNavHost(
                 type = NavType.LongType
             })
         ) {
-            ChatScreen(navigateUp = { navController.navigateUpOrAtHome() })
+            backStackEntry ->
+            val chatId = backStackEntry.arguments?.getLong(ChatScreenDestination.chatIdArg)
+            ChatScreen(navigateUp = { navController.navigateUpOrAtHome()},
+                onEditChatClicked = {chatId?.let {chatId ->
+                    navController.navigate("${ChatEditionDestination.route}/$chatId")
+                }})
         }
         composable(route = ChatEditionDestination.routeWithArgs,
             arguments = listOf(navArgument(ChatEditionDestination.chatIdArg) {

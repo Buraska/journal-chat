@@ -8,7 +8,8 @@ data class ChatUi(
     val id: Long = 0,
     val name: String = "",
     val messages: List<MessageUi> = listOf(), // TODO do we need messages here?
-    val chatIcon: Int? = null
+    val chatIcon: Int? = null,
+    var isSelected: Boolean = false
 )
 
 

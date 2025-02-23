@@ -119,8 +119,6 @@ fun ChatScreen(
 
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
-
-
     Scaffold(
         topBar = {
             when (chatState.mode) {

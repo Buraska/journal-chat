@@ -2,6 +2,7 @@ package com.example.journalchat.ui.screens
 
 import android.graphics.drawable.Drawable
 import android.util.Log
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -22,6 +23,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Clear
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -31,6 +35,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
@@ -41,6 +46,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -57,6 +63,7 @@ import com.example.journalchat.R
 import com.example.journalchat.ChatTopAppBar
 import com.example.journalchat.NavigationDestination
 import com.example.journalchat.ui.AppViewModelProvider
+import com.example.journalchat.ui.states.ChatListMode
 import com.example.journalchat.ui.theme.JournalChatTheme
 import com.example.journalchat.ui.theme.Shapes
 import com.example.journalchat.ui.theme.Typography
@@ -66,6 +73,7 @@ import com.example.journalchat.ui.viewModels.ChatListViewModel
 object ChatListScreenDestination : NavigationDestination {
     override val route = "chatList"
 }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatListScreen(
@@ -81,13 +89,23 @@ fun ChatListScreen(
     isVisible = scrollBehavior.state.collapsedFraction < 0.3
 
     Scaffold(
-        topBar = {
-            ChatTopAppBar(
-                title = stringResource(id = R.string.app_name),
-                navIcon = { AppBarNavigationDrawer(exposeDrawer) },
-                topAppBarScrollBehavior = scrollBehavior,
-                action = { SearchButton() }
-            )
+        topBar =
+        {
+            when (chatListState.value.chatListMode) {
+                ChatListMode.Default -> ChatTopAppBar(
+                    title = stringResource(id = R.string.app_name),
+                    navIcon = { AppBarNavigationDrawer(exposeDrawer) },
+                    topAppBarScrollBehavior = scrollBehavior,
+                    action = { SearchButton() }
+                )
+
+                ChatListMode.Selecting -> SelectionModeChatListTopAppBar(
+                    selectionCount = viewModel.getSelectedCount(),
+                    onDeleteMessage = { /*TODO*/ },
+                    onEditMessage = { /*TODO*/ },
+                    onClearSelection = viewModel::clearSelection
+                )
+            }
         },
         bottomBar = { },
         floatingActionButton = {
@@ -108,17 +126,67 @@ fun ChatListScreen(
                 .padding(innerPadding)
         )
         {
-            ChatList(chatListState.value.chats, onItemClicked, onLongClick = {})
+            ChatList(chatListState.value.chats,
+                onItemClicked = {
+                    if (chatListState.value.chatListMode == ChatListMode.Default){onItemClicked(it)}
+                    else viewModel.selectChat(it)
+                                },
+                onLongClick = viewModel::selectChat)
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SelectionModeChatListTopAppBar(
+    selectionCount: Int,
+    onDeleteMessage: () -> Unit,
+    onEditMessage: () -> Unit,
+    onClearSelection: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    BackHandler {
+        onClearSelection()
+    }
+    TopAppBar(
+        title = { Text(text = selectionCount.toString(), style = Typography.displayLarge) },
+        navigationIcon = {
+            IconButton(onClick = { onClearSelection() }, Modifier) {
+                Icon(
+                    Icons.Outlined.Clear,
+                    stringResource(R.string.clear_selection)
+                )
+            }
+        },
+        scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(
+            rememberTopAppBarState()
+        ),
+        actions = {
+            if (selectionCount == 1) {
+                IconButton(onClick = { onEditMessage() }) {
+                    Icon(
+                        Icons.Outlined.Edit,
+                        stringResource(R.string.edit_message)
+                    )
+
+                }
+            }
+            IconButton(onClick = { onDeleteMessage() }) {
+                Icon(
+                    Icons.Outlined.Delete,
+                    stringResource(R.string.delete_message)
+                )
+            }
+        },
+        modifier = modifier
+    )
+}
 
 @Composable
 fun ChatList(
     chatList: List<ChatUi>,
     onItemClicked: (Long) -> Unit,
-    onLongClick: () -> Unit,
+    onLongClick: (ChatUi) -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(0.dp)
 ) {
@@ -128,7 +196,10 @@ fun ChatList(
         modifier = modifier
     ) {
         itemsIndexed(chatList) { index, chat ->
-            ChatItem(chatItem = chat, onItemClicked = onItemClicked, onLongClick = onLongClick)
+            ChatItem(
+                chatItem = chat,
+                onItemClicked = onItemClicked,
+                onLongClick = { onLongClick(chat) })
         }
 
     }
@@ -154,10 +225,16 @@ fun ChatItem(
     onLongClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var selectedColor = MaterialTheme.colorScheme.onBackground.copy(0.20f)
+
     Card(
         modifier = modifier
             .fillMaxWidth()
             .clip(Shapes.medium)
+            .drawWithContent {
+                drawContent()
+                if (chatItem.isSelected) drawRect(selectedColor)
+            }
             .combinedClickable(
                 onClick =
                 {

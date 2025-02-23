@@ -18,53 +18,67 @@ import com.example.journalchat.ui.screens.ChatScreen
 import com.example.journalchat.ui.screens.ChatScreenDestination
 import com.example.journalchat.ui.screens.ChatCreationScreen
 import com.example.journalchat.ui.screens.ChatCreationScreenDestination
+import com.example.journalchat.ui.screens.ChatEditionDestination
+import com.example.journalchat.ui.screens.ChatEditionScreen
 import com.example.journalchat.ui.screens.ChatListScreenDestination
 
 val homeRoute = ChatListScreenDestination.route
+
 @Composable
 fun JournalNavHost(
     navController: NavHostController = rememberNavController()
 ) {
 
-        NavHost(
-            navController = navController,
-            startDestination =  homeRoute,
-        ) {
+    NavHost(
+        navController = navController,
+        startDestination = homeRoute,
+    ) {
 
-            composable(route = ChatListScreenDestination.route) {
-                ChatListScreen(
-                    onCreateButton =  { navController.navigate(ChatCreationScreenDestination.route) },
-                    exposeDrawer = { },
-                    onItemClicked = {chatId -> navController.navigate("chat/$chatId") })
-            }
-            composable(route = ChatCreationScreenDestination.route) {
-                ChatCreationScreen(navigateUp =  { navController.navigateUpOrAtHome()})
-            }
-            composable(route = ChatScreenDestination.routeWithArgs,
-                arguments = listOf(navArgument(ChatScreenDestination.chatIdArg){type = NavType.LongType})) {
-                ChatScreen(navigateUp = { navController.navigateUpOrAtHome()})
-            }
+        composable(route = ChatListScreenDestination.route) {
+            ChatListScreen(
+                onCreateButton = { navController.navigate(ChatCreationScreenDestination.route) },
+                exposeDrawer = { },
+                onItemClicked = {chatId -> navController.navigate("${ChatScreenDestination.route}/$chatId") },
+                onEditClicked = {chatId -> navController.navigate("${ChatEditionDestination.route}/$chatId")})
         }
+        composable(route = ChatCreationScreenDestination.route) {
+            ChatCreationScreen(navigateUp = { navController.navigateUpOrAtHome() })
+        }
+        composable(route = ChatScreenDestination.routeWithArgs,
+            arguments = listOf(navArgument(ChatScreenDestination.chatIdArg) {
+                type = NavType.LongType
+            })
+        ) {
+            ChatScreen(navigateUp = { navController.navigateUpOrAtHome() })
+        }
+        composable(route = ChatEditionDestination.routeWithArgs,
+            arguments = listOf(navArgument(ChatEditionDestination.chatIdArg) {
+                type = NavType.LongType
+            })
+        ) {
+            ChatEditionScreen(navigateUp = { navController.navigateUpOrAtHome() })
+        }
+    }
 }
 
-fun NavHostController.navigateUpOrAtHome(){
-    if (!this.popBackStack()){
+fun NavHostController.navigateUpOrAtHome() {
+    if (!this.popBackStack()) {
         this.navigate(homeRoute)
     }
 }
 
 @Composable
 fun AppBarNavigationIconBack(navigateUp: () -> Unit) {
-        IconButton(onClick = navigateUp) {
-            Icon(
-                imageVector = Icons.Outlined.ArrowBack,
-                contentDescription = stringResource(R.string.back)
-            )
+    IconButton(onClick = navigateUp) {
+        Icon(
+            imageVector = Icons.Outlined.ArrowBack,
+            contentDescription = stringResource(R.string.back)
+        )
     }
 }
 
 @Composable
-fun AppBarNavigationDrawer(exposeDrawer: () -> Unit){
+fun AppBarNavigationDrawer(exposeDrawer: () -> Unit) {
     IconButton(onClick = exposeDrawer) {
         Icon(
             imageVector = Icons.Outlined.List,

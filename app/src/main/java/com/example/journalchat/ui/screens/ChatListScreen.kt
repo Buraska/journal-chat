@@ -80,18 +80,20 @@ fun ChatListScreen(
     onCreateButton: () -> Unit,
     exposeDrawer: () -> Unit,
     onItemClicked: (Long) -> Unit,
+    onEditClicked: (Long) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ChatListViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
-    val chatListState = viewModel.chatListState.collectAsState()
+    val chatListState by viewModel.chatListState.collectAsState()
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
     var isVisible by remember { mutableStateOf(false) }
     isVisible = scrollBehavior.state.collapsedFraction < 0.3
+    val openAlertDialog = remember { mutableStateOf(false) }
 
     Scaffold(
         topBar =
         {
-            when (chatListState.value.chatListMode) {
+            when (chatListState.chatListMode) {
                 ChatListMode.Default -> ChatTopAppBar(
                     title = stringResource(id = R.string.app_name),
                     navIcon = { AppBarNavigationDrawer(exposeDrawer) },
@@ -101,8 +103,8 @@ fun ChatListScreen(
 
                 ChatListMode.Selecting -> SelectionModeChatListTopAppBar(
                     selectionCount = viewModel.getSelectedCount(),
-                    onDeleteMessage = { /*TODO*/ },
-                    onEditMessage = { /*TODO*/ },
+                    onDeleteChat = {openAlertDialog.value = !openAlertDialog.value},
+                    onEditChat = { onEditClicked(chatListState.selectedChats[0].id) },
                     onClearSelection = viewModel::clearSelection
                 )
             }
@@ -120,15 +122,33 @@ fun ChatListScreen(
             .fillMaxSize()
             .nestedScroll(scrollBehavior.nestedScrollConnection)
     ) { innerPadding ->
+        if (openAlertDialog.value) {
+            val notificationBody: String
+            val notificationTitle: String
+            if (chatListState.selectedChats.count() > 1) {
+                notificationBody = stringResource(id = R.string.delete_chat_dialog_body_plural)
+                notificationTitle = stringResource(id = R.string.delete_chat_dialog_title_plural)
+            }else{
+                notificationBody = stringResource(id = R.string.delete_chat_dialog_body_singular)
+                notificationTitle = stringResource(id = R.string.delete_chat_dialog_title_singular)
+            }
+
+            DeleteAlertDialog(
+                onDelete = { viewModel.deleteChats() },
+                onDismissRequest = { openAlertDialog.value = false },
+                notificationTitle = notificationTitle,
+                notificationBody = notificationBody,
+            )
+        }
         Box(
             modifier = modifier
                 .fillMaxSize()
                 .padding(innerPadding)
         )
         {
-            ChatList(chatListState.value.chats,
+            ChatList(chatListState.chats,
                 onItemClicked = {
-                    if (chatListState.value.chatListMode == ChatListMode.Default){onItemClicked(it)}
+                    if (chatListState.chatListMode == ChatListMode.Default){onItemClicked(it)}
                     else viewModel.selectChat(it)
                                 },
                 onLongClick = viewModel::selectChat)
@@ -140,8 +160,8 @@ fun ChatListScreen(
 @Composable
 fun SelectionModeChatListTopAppBar(
     selectionCount: Int,
-    onDeleteMessage: () -> Unit,
-    onEditMessage: () -> Unit,
+    onDeleteChat: () -> Unit,
+    onEditChat: () -> Unit,
     onClearSelection: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -163,7 +183,7 @@ fun SelectionModeChatListTopAppBar(
         ),
         actions = {
             if (selectionCount == 1) {
-                IconButton(onClick = { onEditMessage() }) {
+                IconButton(onClick = { onEditChat() }) {
                     Icon(
                         Icons.Outlined.Edit,
                         stringResource(R.string.edit_message)
@@ -171,7 +191,7 @@ fun SelectionModeChatListTopAppBar(
 
                 }
             }
-            IconButton(onClick = { onDeleteMessage() }) {
+            IconButton(onClick = { onDeleteChat() }) {
                 Icon(
                     Icons.Outlined.Delete,
                     stringResource(R.string.delete_message)

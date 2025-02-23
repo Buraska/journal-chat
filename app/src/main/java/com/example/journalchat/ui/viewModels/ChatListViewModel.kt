@@ -10,6 +10,7 @@ import com.example.journalchat.ui.states.ChatListMode
 import com.example.journalchat.ui.states.ChatListState
 import com.example.journalchat.ui.states.ChatMode
 import com.example.journalchat.ui.uiModels.ChatUi
+import com.example.journalchat.ui.uiModels.toChat
 import com.example.journalchat.ui.uiModels.toChatUi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -21,7 +22,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-class ChatListViewModel(chatRepository: ChatRepository) : ViewModel() {
+class ChatListViewModel(private val chatRepository: ChatRepository) : ViewModel() {
 
 
     private val _chatListState = MutableStateFlow(ChatListState(listOf()))
@@ -42,6 +43,13 @@ class ChatListViewModel(chatRepository: ChatRepository) : ViewModel() {
         _chatListState.update { currentState ->
             currentState.copy(selectedChats = listOf(), chatListMode = ChatListMode.Default)
         }
+    }
+
+    fun deleteChats(): Unit{
+        viewModelScope.launch {
+            chatRepository.deleteChats(chatListState.value.selectedChats.map { it.toChat() })
+        }
+        clearSelection()
     }
     fun selectChat(chatUi: ChatUi): Unit {
         chatUi.isSelected = !chatUi.isSelected

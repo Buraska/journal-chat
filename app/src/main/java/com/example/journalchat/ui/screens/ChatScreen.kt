@@ -29,7 +29,6 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Face
 import androidx.compose.material.icons.outlined.MoreVert
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
@@ -40,10 +39,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.ShapeDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
@@ -76,7 +73,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.journalchat.AppBarNavigationIconBack
 import com.example.journalchat.NavigationDestination
@@ -169,10 +165,21 @@ fun ChatScreen(
             .nestedScroll(scrollBehavior.nestedScrollConnection),
     ) { innerPadding ->
         if (openAlertDialog.value) {
+            val notificationBody: String
+            val notificationTitle: String
+            if (chatState.selectedMessages.count() > 1) {
+                notificationBody = stringResource(id = R.string.delete_message_dialog_body_plural)
+                notificationTitle = stringResource(id = R.string.delete_message_dialog_title_plural)
+            }else{
+                notificationBody = stringResource(id = R.string.delete_message_dialog_body_singular)
+                notificationTitle = stringResource(id = R.string.delete_message_dialog_title_singular)
+            }
+
             DeleteAlertDialog(
                 onDelete = { viewModel.deleteMessages() },
                 onDismissRequest = { openAlertDialog.value = false },
-                chatState.selectedMessages.size > 1
+                notificationTitle = notificationTitle,
+                notificationBody = notificationBody,
             )
         }
         Column(
@@ -521,43 +528,6 @@ fun Message(
                     offset += mainContent.height
                     if (isShort) offset -= date.height
                     date.place(cardWidth - date.width, offset)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun DeleteAlertDialog(
-    onDelete: () -> Unit,
-    onDismissRequest: () -> Unit,
-    plural: Boolean,
-    modifier: Modifier = Modifier
-) {
-    val mes = if (plural) stringResource(R.string.messages) else stringResource(R.string.message)
-    Dialog(onDismissRequest) {
-        Card(modifier = modifier, shape = ShapeDefaults.Medium) {
-            Column(modifier = Modifier.padding(16.dp, 16.dp, 16.dp, 8.dp)) {
-                Text(
-                    stringResource(R.string.delete_dialog_title, mes),
-                    style = Typography.titleMedium,
-                    modifier = Modifier
-                )
-                Text(
-                    stringResource(R.string.delete_dialog_body, mes),
-                    style = Typography.bodyMedium
-                )
-                Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
-                    TextButton(
-                        onClick = { onDismissRequest() }) {
-                        Text("Cancel")
-                    }
-                    TextButton(
-                        onClick = { onDelete(); onDismissRequest() },
-                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                    ) {
-                        Text("Delete")
-                    }
                 }
             }
         }

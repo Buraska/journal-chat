@@ -18,6 +18,8 @@ class ChatRepository(private val chatDao: ChatDao) {
 
     suspend fun deleteItem(item: Chat) = chatDao.delete(item)
 
+    suspend fun deleteChats(chats: List<Chat>) = chatDao.deleteChats(chats)
+
     suspend fun updateItem(item: Chat) = chatDao.update(item)
 
 }

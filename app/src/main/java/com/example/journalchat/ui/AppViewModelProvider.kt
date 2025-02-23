@@ -23,6 +23,7 @@ import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.journalchat.JournalChatApplication
+import com.example.journalchat.ui.viewModels.ChatEditionViewModel
 import com.example.journalchat.ui.viewModels.ChatListViewModel
 import com.example.journalchat.ui.viewModels.ChatViewModel
 import com.example.journalchat.ui.viewModels.CreateChatViewModel
@@ -48,6 +49,12 @@ object AppViewModelProvider {
                 this.createSavedStateHandle(),
                 inventoryApplication().container.chatRepository,
                 inventoryApplication().container.messageRepository,
+            )
+        }
+        initializer {
+            ChatEditionViewModel(
+                this.createSavedStateHandle(),
+                inventoryApplication().container.chatRepository,
             )
         }
     }

@@ -26,6 +26,8 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,20 +46,22 @@ import com.example.journalchat.ChatTopAppBar
 import com.example.journalchat.NavigationDestination
 import com.example.journalchat.ui.AppViewModelProvider
 import com.example.journalchat.ui.theme.Shapes
-import com.example.journalchat.ui.viewModels.CreateChatViewModel
+import com.example.journalchat.ui.viewModels.ChatEditionViewModel
 import kotlinx.coroutines.launch
 
-object ChatCreationScreenDestination : NavigationDestination {
-    override val route = "chatCreation"
+object ChatEditionDestination : NavigationDestination {
+    override val route = "chatEdition"
+    const val chatIdArg = "chatId"
+    val routeWithArgs = "$route/{$chatIdArg}"
 }
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ChatCreationScreen(
+fun ChatEditionScreen(
     navigateUp: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: CreateChatViewModel = viewModel(factory = AppViewModelProvider.Factory)
+    viewModel: ChatEditionViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
-    val chatState = viewModel.chatState
+    val chatState by viewModel.chatState.collectAsState()
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
     val scope = rememberCoroutineScope()
 
@@ -73,11 +77,11 @@ fun ChatCreationScreen(
         floatingActionButton = {
             FloatingBottomButton(
                 imageVector = Icons.Outlined.Check,
-                buttonDescription = stringResource(R.string.create_chat),
+                buttonDescription = stringResource(R.string.update_chat),
                 isVisible = true,
                 onClick = {
                     scope.launch {
-                        if (viewModel.createChat()){
+                        if (viewModel.editChat()){
                         navigateUp()
                         }
                     }},
@@ -94,8 +98,8 @@ fun ChatCreationScreen(
                 .padding(it)
         ) {
             ChatEdition(
-                chatState.name,
-                { inputText -> viewModel.nameChanged(inputText) },
+                chatState.nameInput,
+                { inputText -> viewModel.nameInputChanged(inputText) },
                 errorMessage = chatState.nameError,
                 modifier = Modifier
             )
@@ -105,7 +109,62 @@ fun ChatCreationScreen(
 }
 
 
+@Composable
+fun ChatEdition(
+    inputHolder: String,
+    onValueChange: (String) -> Unit,
+    errorMessage: String? = "asda",
+    modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(0.dp)
+) {
 
+    Column(modifier = modifier.padding(contentPadding)) {
+        Card(
+            modifier = modifier
+                .clip(Shapes.medium)
+                .fillMaxWidth(),
+            elevation = CardDefaults.cardElevation(defaultElevation = dimensionResource(id = R.dimen.card_elevation))
+        ) {
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(100.dp)
+                    .padding(4.dp)
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                    contentDescription = stringResource(R.string.chat_icon),
+                    modifier = Modifier
+                        .weight(0.3f)
+                        .scale(0.8f)
+                        .clip(Shapes.small)
+                        .background(Color.Gray)
+                )
+                Spacer(Modifier.width(dimensionResource(id = R.dimen.spacer_medium)))
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(), verticalArrangement = Arrangement.SpaceBetween
+                ) {
+                    TextField(
+                        value = inputHolder,
+                        onValueChange = onValueChange,
+                        label = { Text(stringResource(R.string.enter_chat_name)) },
+                        isError = errorMessage != null,
+                    )
+                    Text(
+                        text = errorMessage ?: "",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(4.dp, 8.dp)
+                    )
+                }
+            }
+        }
+    }
+
+}
 
 /*
 @Composable

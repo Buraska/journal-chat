@@ -5,6 +5,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import com.example.journalchat.data.models.Chat
 import com.example.journalchat.data.models.Message
@@ -21,6 +22,14 @@ interface ChatDao {
 
     @Delete
     suspend fun delete(item: Chat)
+
+    @Transaction
+    suspend fun deleteChats(chats: List<Chat>)
+    {
+        for (chat in chats){
+            delete(chat)
+        }
+    }
 
     @Query("SELECT * from chat WHERE id = :id")
     fun get(id: Long): Flow<Chat>

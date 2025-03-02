@@ -1,9 +1,17 @@
 package com.example.journalchat.ui.screens
 
+import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
@@ -13,6 +21,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -29,6 +38,7 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Face
 import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
@@ -45,6 +55,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -56,8 +67,13 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -72,8 +88,16 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import com.example.journalchat.AppBarNavigationIconBack
 import com.example.journalchat.NavigationDestination
 import com.example.journalchat.R
@@ -112,6 +136,8 @@ fun ChatScreen(
 
     var isContextMenuVisible by rememberSaveable { mutableStateOf(false) }
 
+    var isEmojiPopUpVisible by rememberSaveable { mutableStateOf(true) }
+
     val openAlertDialog = remember { mutableStateOf(false) }
 
     val focusRequester = remember { FocusRequester() }
@@ -146,7 +172,9 @@ fun ChatScreen(
                     navIcon = { AppBarNavigationIconBack { navigateUp() } },
                     topAppBarScrollBehavior = scrollBehavior,
                     action = {
-                        OptionButton(onClick = { isContextMenuVisible = true })
+                        OptionButton(onClick = {
+                            isContextMenuVisible = true
+                        })
                         OptionMenu(
                             isContextMenuVisible = isContextMenuVisible,
                             onEditChatClicked = { onEditChatClicked() },
@@ -154,6 +182,7 @@ fun ChatScreen(
                         )
                     }
                 )
+
                 ChatMode.Replying -> {
                     ActionTopAppBar(
                         stringResource(R.string.replying),
@@ -171,9 +200,10 @@ fun ChatScreen(
             if (chatState.selectedMessages.count() > 1) {
                 notificationBody = stringResource(id = R.string.delete_message_dialog_body_plural)
                 notificationTitle = stringResource(id = R.string.delete_message_dialog_title_plural)
-            }else{
+            } else {
                 notificationBody = stringResource(id = R.string.delete_message_dialog_body_singular)
-                notificationTitle = stringResource(id = R.string.delete_message_dialog_title_singular)
+                notificationTitle =
+                    stringResource(id = R.string.delete_message_dialog_title_singular)
             }
 
             DeleteAlertDialog(
@@ -195,6 +225,8 @@ fun ChatScreen(
                 onMessageClick = { messageUi ->
                     if (chatState.mode == ChatMode.Selecting) {
                         viewModel.selectMessage(messageUi)
+                    } else {
+                        isEmojiPopUpVisible = true
                     }
                 },
                 onMessageLongClick = { messageUi ->
@@ -209,7 +241,7 @@ fun ChatScreen(
                     viewModel.sendMessage()
                 },
                 onEditMessage = { viewModel.editMessage() },
-                onReplyMessage = {viewModel.replyMessage()},
+                onReplyMessage = { viewModel.replyMessage() },
                 mode = chatState.mode,
                 focusRequester = focusRequester,
                 modifier = Modifier
@@ -217,7 +249,49 @@ fun ChatScreen(
                     .navigationBarsPadding()
             )
         }
+
     }
+    if (isEmojiPopUpVisible) EmojiDialog(onDismissRequest = {
+        isEmojiPopUpVisible = false
+    })
+}
+
+@Composable
+fun EmojiDialog(
+    onDismissRequest: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    BackHandler {
+        onDismissRequest()
+    }
+    Box(modifier = Modifier
+        .fillMaxSize()
+        .background(color = Color.Black.copy(alpha = 0.22f))
+        .clickable(interactionSource, indication = null) { onDismissRequest() }
+    ) {
+        Card(modifier = modifier.align(Alignment.Center)) {
+            Row(modifier = Modifier.padding(16.dp)) {
+                Emoji(text = "\uD83D\uDE00")
+                Emoji(text = "\uD83D\uDE06")
+                Emoji(text = "☺\uFE0F")
+                Emoji(text = "\uD83D\uDE00")
+                Emoji(text = "\uD83D\uDE06")
+                Emoji(text = "☺\uFE0F")
+                IconButton(onClick = { /*TODO*/ }) {
+                    Icon(
+                        imageVector = Icons.Outlined.Add,
+                        contentDescription = stringResource(R.string.expand_emoji_list)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun Emoji(text: String, modifier: Modifier = Modifier) {
+    Text(text = text, fontSize = 30.sp, modifier = modifier.padding(horizontal = 4.dp))
 }
 
 
@@ -314,7 +388,7 @@ fun SelectionModeTopAppBar(
 @Composable
 fun OptionButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
 
-    IconButton(onClick = onClick, modifier = modifier)
+    IconButton(onClick = onClick, modifier = modifier.focusProperties { canFocus = false })
     {
         Icon(
             imageVector = Icons.Outlined.MoreVert,
@@ -328,13 +402,13 @@ fun OptionMenu(
     isContextMenuVisible: Boolean,
     onEditChatClicked: () -> Unit,
     onDismissRequest: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     DropdownMenu(
         expanded = isContextMenuVisible,
         onDismissRequest = onDismissRequest,
         offset = DpOffset.Zero,
-        modifier = modifier
+        properties = PopupProperties(focusable = false)
     )
     {
         DropdownMenuItem(
@@ -350,7 +424,8 @@ fun OptionMenu(
             {
                 onEditChatClicked()
                 onDismissRequest()
-            }
+            },
+            modifier = modifier.focusProperties { canFocus = false }
         )
     }
 }
@@ -472,14 +547,15 @@ fun Message(
                         style = Typography.bodyMedium,
                     )
                 }.first().measure(constraints)
-                val date = subcompose("date"){
+                val date = subcompose("date") {
                     Text(
                         text = message.date.getTime(),
                         style = Typography.bodySmall,
                         modifier = Modifier
                             .align(Alignment.End)
                             .padding(6.dp, 6.dp, 0.dp, 0.dp)
-                    )}
+                    )
+                }
                     .first().measure(constraints)
 
                 var reply: Placeable? = null
@@ -487,13 +563,15 @@ fun Message(
                     reply = subcompose("reply") {
                         Card(
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.background),
-                            modifier = Modifier){
+                            modifier = Modifier
+                        ) {
                             Text(
                                 text = message.reference.content,
                                 style = Typography.bodyMedium,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.padding(8.dp))
+                                modifier = Modifier.padding(8.dp)
+                            )
                         }
                     }.first().measure(constraints)
                 }
@@ -503,7 +581,7 @@ fun Message(
                 var cardWidth = maxOf(replyWidth, mainContent.width)
                 var cardHeight = mainContent.height + date.height + replyHeight
                 var isShort = false
-                if (cardWidth < date.width){
+                if (cardWidth < date.width) {
                     cardWidth += date.width
                     cardHeight -= date.height
                     isShort = true
@@ -511,18 +589,19 @@ fun Message(
 
                 var replyArea: Placeable? = null
                 if (message.reference != null) {
-                    replyArea = subcompose("replyArea"){
+                    replyArea = subcompose("replyArea") {
                         Card(
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.background),
-                            modifier = Modifier.size(DpSize(cardWidth.toDp(), replyHeight.toDp()))){
+                            modifier = Modifier.size(DpSize(cardWidth.toDp(), replyHeight.toDp()))
+                        ) {
                         }
                     }.first().measure(constraints)
                 }
-                layout(cardWidth, cardHeight){
+                layout(cardWidth, cardHeight) {
                     var offset = 0
-                    if (reply != null && replyArea != null){
-                        replyArea.place(0,0)
-                        reply.place(0,0)
+                    if (reply != null && replyArea != null) {
+                        replyArea.place(0, 0)
+                        reply.place(0, 0)
                         offset = reply.height
                     }
                     mainContent.place(0, offset)
@@ -546,7 +625,7 @@ fun ChatInputField(
     modifier: Modifier = Modifier,
     onReplyMessage: () -> Unit
 ) {
-
+    Log.d("Custom", "ChatInputField is recomposed")
     Surface(
         contentColor = MaterialTheme.colorScheme.inverseSurface,
         color = (MaterialTheme.colorScheme.surfaceVariant),
@@ -592,6 +671,7 @@ fun ChatInputField(
                             contentDescription = stringResource(R.string.confirm_editing)
                         )
                     }
+
                 ChatMode.Replying ->
                     IconButton(onClick = onReplyMessage) {
                         Icon(
@@ -625,16 +705,13 @@ fun LocalDateTime.getDate(): String {
 @Composable
 fun ChatPreview() {
 
-    val ref = MessageUi(
-        0,
-        0,
-        null,
-        null,
-        "Lo"
-    )
-    Message(
-        message = MessageUi(0, 0, 0, ref, "Hi!"),
-        onClick = { /*TODO*/ },
-        onLongClick = { /*TODO*/ })
+    Scaffold(modifier = Modifier.fillMaxSize()) {
+        Row(
+            modifier = Modifier
+                .padding(it)
+        ) {
+            EmojiDialog(onDismissRequest = { /*TODO*/ })
+        }
+    }
 }
 

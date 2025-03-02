@@ -10,6 +10,7 @@ android {
     namespace = "com.example.journalchat"
     compileSdk = 34
 
+
     defaultConfig {
         applicationId = "com.example.journalchat"
         minSdk = 26
@@ -52,6 +53,7 @@ android {
     }
 }
 
+val appcompat_version = "1.7.0"
 dependencies {
 
     implementation("androidx.core:core-ktx:1.12.0")
@@ -77,6 +79,11 @@ dependencies {
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
+
+
+    implementation("androidx.appcompat:appcompat:$appcompat_version")
+    // For loading and tinting drawables on older versions of the platform
+    implementation("androidx.appcompat:appcompat-resources:$appcompat_version")
 
 
 

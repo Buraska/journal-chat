@@ -59,14 +59,16 @@ class ChatViewModel(
     }
 
     fun sendMessage() {
-        if (chatState.value.input.text == "") return
+        val text = chatState.value.input.text.trim()
+
+        if (text == "") return
         viewModelScope.launch {
             messageRepository.insertItem(
                 Message(
                     0,
                     id,
                     null,
-                    chatState.value.input.text,
+                   text,
                     true,
                     LocalDateTime.now()
                 )
@@ -153,10 +155,12 @@ class ChatViewModel(
             Log.e("editMessage", "Trying editing message while selecting list size is not one")
             return;
         }
-        if (chatState.value.input.text == "") return
+
+        val text = chatState.value.input.text.trim()
+        if (text == "") return
 
         val updatedMessage =
-            chatState.value.selectedMessages[0].copy(content = chatState.value.input.text)
+            chatState.value.selectedMessages[0].copy(content = text)
 
         viewModelScope.launch {
             messageRepository.updateItem(

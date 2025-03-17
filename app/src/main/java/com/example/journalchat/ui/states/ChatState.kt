@@ -4,6 +4,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import com.example.journalchat.data.models.Tag
 import com.example.journalchat.ui.uiModels.ChatUi
 import com.example.journalchat.ui.uiModels.MessageUi
+import com.example.journalchat.ui.uiModels.TagUi
 
 
 data class ChatState(
@@ -12,7 +13,7 @@ data class ChatState(
     val selectedMessages: List<MessageUi> = listOf(),
     val mode: ChatMode = ChatMode.Chatting,
     val input: TextFieldValue = TextFieldValue(""),
-    val tags: List<Tag> = listOf()
+    val tags: List<TagUi> = listOf()
 )
 
 enum class ChatMode {

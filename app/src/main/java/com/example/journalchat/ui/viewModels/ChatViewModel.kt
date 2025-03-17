@@ -14,17 +14,17 @@ import com.example.journalchat.data.repositories.TagRepository
 import com.example.journalchat.ui.states.ChatMode
 import com.example.journalchat.ui.states.ChatState
 import com.example.journalchat.ui.uiModels.MessageUi
+import com.example.journalchat.ui.uiModels.TagUi
 import com.example.journalchat.ui.uiModels.toChatUi
 import com.example.journalchat.ui.uiModels.toMessage
 import com.example.journalchat.ui.uiModels.toMessageUi
+import com.example.journalchat.ui.uiModels.toTagUi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
@@ -52,12 +52,16 @@ class ChatViewModel(
                     chat = chat.toChatUi(),
                     messages = messages.map { message ->
                         var ref: Message? = null
+                        var tag: Tag? = null
                         if (message.referenceId != null) {
                             ref = messages.find { it.id == message.referenceId }
                         }
-                        message.toMessageUi(ref?.toMessageUi())
+                        if (message.tagId != null) {
+                            tag = tagRepository.getStream(message.tagId).first()
+                        }
+                        message.toMessageUi(ref?.toMessageUi(), tag?.toTagUi())
                     },
-                    tags = tagRepository.getAllStream().filterNotNull().first())
+                    tags = tagRepository.getAllStream().filterNotNull().first().map { it.toTagUi() })
             }.collect{_chatState.value = it}
 
         }
@@ -157,7 +161,7 @@ class ChatViewModel(
     }
 
 
-    fun editMessage() {
+    fun editMessageText() {
         if (chatState.value.selectedMessages.size != 1) {
             Log.e("editMessage", "Trying editing message while selecting list size is not one")
             return;
@@ -201,6 +205,24 @@ class ChatViewModel(
                 newMessage
             )
         }
+    }
+
+    fun applyTag(tagUi: TagUi) {
+        if (chatState.value.selectedMessages.size != 1){
+            Log.e("Custom", "Applying tag, but selected messages size is not one!")
+            return;
+        }
+        var message = chatState.value.selectedMessages[0]
+        message = message.copy(tagId = tagUi.id)
+        Log.i("custom", message.toMessage().toString())
+
+        viewModelScope.launch {
+            messageRepository.updateItem(
+                message.toMessage()
+            )
+        }
+
+
     }
 
 

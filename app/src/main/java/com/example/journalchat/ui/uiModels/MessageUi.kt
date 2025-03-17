@@ -10,7 +10,8 @@ data class MessageUi (
 
     val id: Long = 0,
     val chatId: Long,
-    val tag: Tag? = null,
+    val tagId: Long? = null,
+    val tag: TagUi? = null,
     val referenceId: Long? = null,
     val reference: MessageUi? = null,
     val content:String,
@@ -20,13 +21,13 @@ data class MessageUi (
 )
 
 fun MessageUi.toMessage(): Message {
-    return Message(id, chatId, null, referenceId, content, isPrimary, date)
+    return Message(id, chatId, tagId, referenceId, content, isPrimary, date)
 }
 
 fun Message.toMessageUi(): MessageUi {
-    return MessageUi(id, chatId, null, referenceId,null, content, isPrimary, date)
+    return MessageUi(id, chatId, tagId,null, referenceId,null, content, isPrimary, date)
 }
 
-fun Message.toMessageUi(reference: MessageUi?): MessageUi {
-    return MessageUi(id, chatId, null, referenceId, reference, content, isPrimary, date)
+fun Message.toMessageUi(reference: MessageUi?, tag: TagUi?): MessageUi {
+    return MessageUi(id, chatId, tag?.id ,tag, referenceId, reference, content, isPrimary, date)
 }

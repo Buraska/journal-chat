@@ -2,8 +2,10 @@ package com.example.journalchat.ui.screens
 
 import android.util.Log
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -25,7 +27,6 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.BasicTextField
@@ -38,6 +39,7 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Face
 import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
@@ -82,6 +84,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.DpOffset
@@ -94,13 +97,13 @@ import com.example.journalchat.AppBarNavigationIconBack
 import com.example.journalchat.NavigationDestination
 import com.example.journalchat.R
 import com.example.journalchat.ChatTopAppBar
-import com.example.journalchat.data.models.Tag
 import com.example.journalchat.ui.AppViewModelProvider
 import com.example.journalchat.ui.states.ChatMode
 import com.example.journalchat.ui.theme.Typography
 import com.example.journalchat.ui.theme.nonPrimaryMessageShape
 import com.example.journalchat.ui.theme.primaryMessageShape
 import com.example.journalchat.ui.uiModels.MessageUi
+import com.example.journalchat.ui.uiModels.TagUi
 import com.example.journalchat.ui.viewModels.ChatViewModel
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -221,6 +224,7 @@ fun ChatScreen(
                         viewModel.selectMessage(messageUi)
                     } else {
                         isEmojiPopUpVisible = true
+                        viewModel.selectMessage(messageUi)
                     }
                 },
                 onMessageLongClick = { messageUi ->
@@ -234,7 +238,7 @@ fun ChatScreen(
                 onSendMessage = {
                     viewModel.sendMessage()
                 },
-                onEditMessage = { viewModel.editMessage() },
+                onEditMessage = { viewModel.editMessageText() },
                 onReplyMessage = { viewModel.replyMessage() },
                 mode = chatState.mode,
                 focusRequester = focusRequester,
@@ -247,26 +251,34 @@ fun ChatScreen(
     }
     if (isBottomSheetVisible) {
         EmojiBottomSheet(tags = chatState.tags, sheetState,
-            {
+            onDismissRequest = {
+                isBottomSheetVisible = false
+                viewModel.clearSelection()
+            },
+            onTagClick = { tagUi ->
+                viewModel.applyTag(tagUi)
+                viewModel.clearSelection()
                 isBottomSheetVisible = false
             }
         )
     }
     if (isEmojiPopUpVisible) EmojiDialog(onDismissRequest = {
+        viewModel.clearSelection()
         isEmojiPopUpVisible = false
-    }
-    ) {
-        isBottomSheetVisible = true
-        isEmojiPopUpVisible = false
-    }
+    },
+        onExpandClick = {
+            isBottomSheetVisible = true
+            isEmojiPopUpVisible = false
+        })
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EmojiBottomSheet(
-    tags: List<Tag>,
+    tags: List<TagUi>,
     sheetState: SheetState,
     onDismissRequest: () -> Unit,
+    onTagClick: (TagUi) -> Unit,
     modifier: Modifier = Modifier
 ) {
     ModalBottomSheet(
@@ -274,9 +286,9 @@ fun EmojiBottomSheet(
         sheetState = sheetState,
         modifier = modifier
     ) {
-        LazyVerticalGrid(columns = GridCells.Fixed(6)) {
-            items(tags){ tag ->
-                Emoji(text = tag.emojiCode)
+        LazyVerticalGrid(columns = GridCells.Fixed(6), horizontalArrangement = Arrangement.Center, modifier = Modifier) {
+            items(tags) { tag ->
+                Emoji(text = tag.emojiCode, onTagClick = { onTagClick(tag)}, modifier = Modifier.align(Alignment.CenterHorizontally))
             }
         }
     }
@@ -299,12 +311,6 @@ fun EmojiDialog(
     ) {
         Card(modifier = modifier.align(Alignment.Center)) {
             Row(modifier = Modifier.padding(16.dp)) {
-                Emoji(text = "\uD83D\uDE00")
-                Emoji(text = "\uD83D\uDE06")
-                Emoji(text = "☺\uFE0F")
-                Emoji(text = "\uD83D\uDE00")
-                Emoji(text = "\uD83D\uDE06")
-                Emoji(text = "☺\uFE0F")
                 IconButton(onClick = onExpandClick) {
                     Icon(
                         imageVector = Icons.Outlined.Add,
@@ -317,8 +323,14 @@ fun EmojiDialog(
 }
 
 @Composable
-fun Emoji(text: String, modifier: Modifier = Modifier) {
-    Text(text = text, fontSize = 30.sp, modifier = modifier.padding(horizontal = 4.dp))
+fun Emoji(text: String, onTagClick: () -> Unit, modifier: Modifier = Modifier) {
+    Text(
+        text = text,
+        textAlign = TextAlign.Center,
+        fontSize = 36.sp,
+        modifier = modifier
+            .clickable { onTagClick()}
+    )
 }
 
 
@@ -605,13 +617,15 @@ fun Message(
 
                 var tag: Placeable? = null
                 if (message.tag != null) {
-                    reply = subcompose("tag") {
+                    tag = subcompose("tag") {
                         Card(
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.background),
-                            modifier = Modifier
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.onPrimary),
+                            modifier = Modifier.padding()
                         ) {
                             Text(
+                                modifier = Modifier.padding(4.dp),
                                 text = message.tag.emojiCode,
+                                fontSize = 20.sp
                             )
                         }
                     }.first().measure(constraints)
@@ -620,11 +634,12 @@ fun Message(
                 val replyHeight = reply?.height ?: 0
                 val replyWidth = reply?.width ?: 0
                 var cardWidth = maxOf(replyWidth, mainContent.width)
-                var cardHeight = mainContent.height + date.height + replyHeight
                 var isShort = false
+                var cardHeight = mainContent.height + replyHeight
+                cardHeight += tag?.height ?: date.height
                 if (cardWidth < date.width) {
                     cardWidth += date.width
-                    cardHeight -= date.height
+                    if (tag == null) cardHeight -= date.height
                     isShort = true
                 }
 
@@ -647,6 +662,9 @@ fun Message(
                     }
                     mainContent.place(0, offset)
                     offset += mainContent.height
+                    if (tag != null) {
+                        tag.place(0, offset)
+                    }
                     if (isShort) offset -= date.height
                     date.place(cardWidth - date.width, offset)
 
@@ -752,7 +770,10 @@ fun ChatPreview() {
             modifier = Modifier
                 .padding(it)
         ) {
-            Message(message = MessageUi(0, content = "asdasd", chatId = 0, tag = Tag(0, "🚩")), onClick = { /*TODO*/ }, onLongClick = { /*TODO*/ })
+            Message(
+                message = MessageUi(0, content = "Ъыъ", tag = TagUi(0, "\uD83D\uDE00"), chatId = 0),
+                onClick = { /*TODO*/ },
+                onLongClick = { /*TODO*/ })
         }
     }
 }

@@ -7,8 +7,10 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.journalchat.data.models.Message
+import com.example.journalchat.data.models.Tag
 import com.example.journalchat.data.repositories.ChatRepository
 import com.example.journalchat.data.repositories.MessageRepository
+import com.example.journalchat.data.repositories.TagRepository
 import com.example.journalchat.ui.states.ChatMode
 import com.example.journalchat.ui.states.ChatState
 import com.example.journalchat.ui.uiModels.MessageUi
@@ -22,6 +24,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
@@ -29,7 +32,8 @@ import java.time.LocalDateTime
 class ChatViewModel(
     savedStateHandle: SavedStateHandle,
     private val chatRepository: ChatRepository,
-    private val messageRepository: MessageRepository
+    private val messageRepository: MessageRepository,
+    private val tagRepository: TagRepository
 ) : ViewModel() {
 
     private val id: Long = checkNotNull(savedStateHandle["chatId"])
@@ -52,12 +56,14 @@ class ChatViewModel(
                             ref = messages.find { it.id == message.referenceId }
                         }
                         message.toMessageUi(ref?.toMessageUi())
-                    })
+                    },
+                    tags = tagRepository.getAllStream().filterNotNull().first())
             }.collect{_chatState.value = it}
 
         }
     }
 
+    fun getTag(){}
     fun sendMessage() {
         val text = chatState.value.input.text.trim()
 
@@ -67,6 +73,7 @@ class ChatViewModel(
                 Message(
                     0,
                     id,
+                    null,
                     null,
                    text,
                     true,
@@ -182,6 +189,7 @@ class ChatViewModel(
         val newMessage = Message(
             0,
             id,
+            null,
             selectedMessage.id,
             chatState.value.input.text,
             true,
@@ -194,6 +202,7 @@ class ChatViewModel(
             )
         }
     }
+
 
 }
 

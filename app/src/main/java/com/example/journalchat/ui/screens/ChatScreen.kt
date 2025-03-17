@@ -6,9 +6,6 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,11 +18,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.BasicTextField
@@ -38,7 +38,6 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Face
 import androidx.compose.material.icons.outlined.MoreVert
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
@@ -48,14 +47,16 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SheetState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -70,10 +71,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.input.pointer.PointerEventType
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -88,20 +86,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.DpSize
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
-import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
 import com.example.journalchat.AppBarNavigationIconBack
 import com.example.journalchat.NavigationDestination
 import com.example.journalchat.R
 import com.example.journalchat.ChatTopAppBar
+import com.example.journalchat.data.models.Tag
 import com.example.journalchat.ui.AppViewModelProvider
 import com.example.journalchat.ui.states.ChatMode
 import com.example.journalchat.ui.theme.Typography
@@ -133,10 +126,11 @@ fun ChatScreen(
 
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
     val scrollState = rememberLazyListState()
+    val sheetState = rememberModalBottomSheetState()
 
     var isContextMenuVisible by rememberSaveable { mutableStateOf(false) }
-
-    var isEmojiPopUpVisible by rememberSaveable { mutableStateOf(true) }
+    var isBottomSheetVisible by rememberSaveable { mutableStateOf(false) }
+    var isEmojiPopUpVisible by rememberSaveable { mutableStateOf(false) }
 
     val openAlertDialog = remember { mutableStateOf(false) }
 
@@ -251,15 +245,48 @@ fun ChatScreen(
         }
 
     }
+    if (isBottomSheetVisible) {
+        EmojiBottomSheet(tags = chatState.tags, sheetState,
+            {
+                isBottomSheetVisible = false
+            }
+        )
+    }
     if (isEmojiPopUpVisible) EmojiDialog(onDismissRequest = {
         isEmojiPopUpVisible = false
-    })
+    }
+    ) {
+        isBottomSheetVisible = true
+        isEmojiPopUpVisible = false
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EmojiBottomSheet(
+    tags: List<Tag>,
+    sheetState: SheetState,
+    onDismissRequest: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismissRequest,
+        sheetState = sheetState,
+        modifier = modifier
+    ) {
+        LazyVerticalGrid(columns = GridCells.Fixed(6)) {
+            items(tags){ tag ->
+                Emoji(text = tag.emojiCode)
+            }
+        }
+    }
 }
 
 @Composable
 fun EmojiDialog(
     onDismissRequest: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onExpandClick: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     BackHandler {
@@ -278,7 +305,7 @@ fun EmojiDialog(
                 Emoji(text = "\uD83D\uDE00")
                 Emoji(text = "\uD83D\uDE06")
                 Emoji(text = "☺\uFE0F")
-                IconButton(onClick = { /*TODO*/ }) {
+                IconButton(onClick = onExpandClick) {
                     Icon(
                         imageVector = Icons.Outlined.Add,
                         contentDescription = stringResource(R.string.expand_emoji_list)
@@ -576,6 +603,20 @@ fun Message(
                     }.first().measure(constraints)
                 }
 
+                var tag: Placeable? = null
+                if (message.tag != null) {
+                    reply = subcompose("tag") {
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.background),
+                            modifier = Modifier
+                        ) {
+                            Text(
+                                text = message.tag.emojiCode,
+                            )
+                        }
+                    }.first().measure(constraints)
+                }
+
                 val replyHeight = reply?.height ?: 0
                 val replyWidth = reply?.width ?: 0
                 var cardWidth = maxOf(replyWidth, mainContent.width)
@@ -608,6 +649,7 @@ fun Message(
                     offset += mainContent.height
                     if (isShort) offset -= date.height
                     date.place(cardWidth - date.width, offset)
+
                 }
             }
         }
@@ -710,7 +752,7 @@ fun ChatPreview() {
             modifier = Modifier
                 .padding(it)
         ) {
-            EmojiDialog(onDismissRequest = { /*TODO*/ })
+            Message(message = MessageUi(0, content = "asdasd", chatId = 0, tag = Tag(0, "🚩")), onClick = { /*TODO*/ }, onLongClick = { /*TODO*/ })
         }
     }
 }

@@ -24,17 +24,19 @@ import androidx.room.TypeConverter
 import androidx.room.TypeConverters
 import com.example.journalchat.data.daos.ChatDao
 import com.example.journalchat.data.daos.MessageDao
+import com.example.journalchat.data.daos.TagDao
 import com.example.journalchat.data.models.Chat
 import com.example.journalchat.data.models.Message
+import com.example.journalchat.data.models.Tag
 import java.time.LocalDateTime
-import java.util.Date
 
-@Database(entities = [Chat::class, Message::class], version = 1, exportSchema = false)
+@Database(entities = [Chat::class, Message::class, Tag::class], version = 2, exportSchema = true)
 @TypeConverters(Converters::class)
 abstract class JournalChatDatabase : RoomDatabase() {
 
     abstract fun messageDao(): MessageDao
     abstract fun chatDao(): ChatDao
+    abstract fun tagDao(): TagDao
 
     companion object {
         @Volatile
@@ -45,10 +47,20 @@ abstract class JournalChatDatabase : RoomDatabase() {
             return Instance ?: synchronized(this) {
                 Room.databaseBuilder(context, JournalChatDatabase::class.java, "journal_chat_database")
                     .fallbackToDestructiveMigration()
+//                    .createFromAsset("database/tag.db")
                     .build().also { Instance = it }
             }
         }
     }
+}
+
+
+fun parseEmojiCsv(context: Context, fileName: String): List<Tag>{
+    val tagList = mutableListOf<Tag>()
+    context.assets.open("database/emojis.csv")
+    tagList.add(Tag(0, "ASDASD", LocalDateTime.now(), "TEST"))
+
+    return tagList
 }
 
 class Converters {

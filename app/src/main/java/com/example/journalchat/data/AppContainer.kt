@@ -19,6 +19,7 @@ package com.example.journalchat.data
 import android.content.Context
 import com.example.journalchat.data.repositories.ChatRepository
 import com.example.journalchat.data.repositories.MessageRepository
+import com.example.journalchat.data.repositories.TagRepository
 
 /**
  * App container for Dependency injection.
@@ -33,5 +34,9 @@ class AppDataContainer(private val context: Context){
 
     val messageRepository: MessageRepository by lazy {
         MessageRepository(JournalChatDatabase.getDatabase(context).messageDao())
+    }
+
+    val tagRepository: TagRepository by lazy {
+        TagRepository(JournalChatDatabase.getDatabase(context).tagDao())
     }
 }

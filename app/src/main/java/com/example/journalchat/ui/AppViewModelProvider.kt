@@ -49,6 +49,7 @@ object AppViewModelProvider {
                 this.createSavedStateHandle(),
                 inventoryApplication().container.chatRepository,
                 inventoryApplication().container.messageRepository,
+                inventoryApplication().container.tagRepository,
             )
         }
         initializer {

@@ -16,6 +16,9 @@ data class Message (
     @ColumnInfo(name = "chat_id")
     val chatId: Long,
 
+    @ColumnInfo(name = "tag_id")
+    val tagId: Long?,
+
     val referenceId: Long?,
 
     val content:String,

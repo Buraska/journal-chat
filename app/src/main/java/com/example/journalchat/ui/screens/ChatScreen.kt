@@ -97,6 +97,7 @@ import com.example.journalchat.AppBarNavigationIconBack
 import com.example.journalchat.NavigationDestination
 import com.example.journalchat.R
 import com.example.journalchat.ChatTopAppBar
+import com.example.journalchat.data.models.Tag
 import com.example.journalchat.ui.AppViewModelProvider
 import com.example.journalchat.ui.states.ChatMode
 import com.example.journalchat.ui.theme.Typography
@@ -223,8 +224,10 @@ fun ChatScreen(
                     if (chatState.mode == ChatMode.Selecting) {
                         viewModel.selectMessage(messageUi)
                     } else {
-                        isEmojiPopUpVisible = true
+                        if (messageUi.tag != null) viewModel.applyTag(messageUi, null)
+                        else{isEmojiPopUpVisible = true
                         viewModel.selectMessage(messageUi)
+                    }
                     }
                 },
                 onMessageLongClick = { messageUi ->
@@ -262,7 +265,10 @@ fun ChatScreen(
             }
         )
     }
-    if (isEmojiPopUpVisible) EmojiDialog(onDismissRequest = {
+    if (isEmojiPopUpVisible) EmojiDialog(
+        selectedTags = viewModel.selectedTags,
+        onTagClick = {tag -> viewModel.applyTag(tag)},
+        onDismissRequest = {
         viewModel.clearSelection()
         isEmojiPopUpVisible = false
     },
@@ -296,6 +302,8 @@ fun EmojiBottomSheet(
 
 @Composable
 fun EmojiDialog(
+    selectedTags: List<TagUi>,
+    onTagClick: (TagUi) -> Unit,
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
     onExpandClick: () -> Unit
@@ -305,17 +313,22 @@ fun EmojiDialog(
         onDismissRequest()
     }
     Box(modifier = Modifier
-        .fillMaxSize()
+        .fillMaxWidth(0.7f)
         .background(color = Color.Black.copy(alpha = 0.22f))
         .clickable(interactionSource, indication = null) { onDismissRequest() }
     ) {
         Card(modifier = modifier.align(Alignment.Center)) {
-            Row(modifier = Modifier.padding(16.dp)) {
-                IconButton(onClick = onExpandClick) {
-                    Icon(
-                        imageVector = Icons.Outlined.Add,
-                        contentDescription = stringResource(R.string.expand_emoji_list)
-                    )
+            LazyVerticalGrid(columns = GridCells.Fixed(5), modifier = Modifier.padding(16.dp).fillMaxWidth(0.7f)) {
+                items(selectedTags) {tag ->
+                    Emoji(text = tag.emojiCode, onTagClick = { onTagClick(tag)}, modifier = Modifier.align(Alignment.CenterHorizontally))
+                }
+                item {
+                    IconButton(onClick = onExpandClick) {
+                        Icon(
+                            imageVector = Icons.Outlined.Add,
+                            contentDescription = stringResource(R.string.expand_emoji_list)
+                        )
+                    }
                 }
             }
         }
@@ -620,7 +633,7 @@ fun Message(
                     tag = subcompose("tag") {
                         Card(
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.onPrimary),
-                            modifier = Modifier.padding()
+                            modifier = Modifier.padding(top = 4.dp, end = 4.dp)
                         ) {
                             Text(
                                 modifier = Modifier.padding(4.dp),
@@ -633,13 +646,14 @@ fun Message(
 
                 val replyHeight = reply?.height ?: 0
                 val replyWidth = reply?.width ?: 0
-                var cardWidth = maxOf(replyWidth, mainContent.width)
+                val tagWidth = tag?.width ?: 0
+                var cardWidth = maxOf(replyWidth, mainContent.width, date.width + tagWidth)
                 var isShort = false
                 var cardHeight = mainContent.height + replyHeight
                 cardHeight += tag?.height ?: date.height
-                if (cardWidth < date.width) {
-                    cardWidth += date.width
-                    if (tag == null) cardHeight -= date.height
+                if (tag == null && cardWidth == date.width){
+                    cardHeight -= date.height
+                    cardWidth += mainContent.width
                     isShort = true
                 }
 
@@ -664,6 +678,8 @@ fun Message(
                     offset += mainContent.height
                     if (tag != null) {
                         tag.place(0, offset)
+                        offset += tag.height - date.height
+
                     }
                     if (isShort) offset -= date.height
                     date.place(cardWidth - date.width, offset)
@@ -766,15 +782,32 @@ fun LocalDateTime.getDate(): String {
 fun ChatPreview() {
 
     Scaffold(modifier = Modifier.fillMaxSize()) {
-        Row(
+        Column(
             modifier = Modifier
                 .padding(it)
         ) {
             Message(
-                message = MessageUi(0, content = "Ъыъ", tag = TagUi(0, "\uD83D\uDE00"), chatId = 0),
+                message = MessageUi(0, content = "da", tag = TagUi(0, "\uD83D\uDE00"), chatId = 0),
+                onClick = { /*TODO*/ },
+                onLongClick = { /*TODO*/ }
+            )
+            Message(
+                message = MessageUi(0, content = "da", chatId = 0),
+                onClick = { /*TODO*/ },
+                onLongClick = { /*TODO*/ })
+            Message(
+                message = MessageUi(0, content = "da. Об этом много говорят на кухнях", chatId = 0),
+                onClick = { /*TODO*/ },
+                onLongClick = { /*TODO*/ })
+            Message(
+                message = MessageUi(0, content = "da. Об этом много говорят на кухнях",  tag = TagUi(0, "\uD83D\uDE00"), chatId = 0),
                 onClick = { /*TODO*/ },
                 onLongClick = { /*TODO*/ })
         }
+        Message(
+            message = MessageUi(0, content = "da", tag = TagUi(0, "\uD83D\uDE00"), chatId = 0),
+            onClick = { /*TODO*/ },
+            onLongClick = { /*TODO*/ })
     }
-}
+    }
 

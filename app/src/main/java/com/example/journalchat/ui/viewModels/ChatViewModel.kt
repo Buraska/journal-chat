@@ -43,11 +43,16 @@ class ChatViewModel(
     private val _chatState = MutableStateFlow(ChatState())
     val chatState: StateFlow<ChatState> = _chatState.asStateFlow()
 
+    private var _selectedTags = mutableSetOf<TagUi>()
+    val selectedTags: List<TagUi>
+        get() = _selectedTags.toList()
+
     init {
         viewModelScope.launch {
             val chatFlow = chatRepository.getStream(id).filterNotNull()
             val messageFlow = messageRepository.getAllStream(id).filterNotNull()
             combine(chatFlow, messageFlow) { chat, messages ->
+                _selectedTags = mutableSetOf()
                 ChatState(
                     chat = chat.toChatUi(),
                     messages = messages.map { message ->
@@ -58,16 +63,20 @@ class ChatViewModel(
                         }
                         if (message.tagId != null) {
                             tag = tagRepository.getStream(message.tagId).first()
+                            if (tag != null) {
+                                _selectedTags.add(tag.toTagUi())
+                            }
                         }
                         message.toMessageUi(ref?.toMessageUi(), tag?.toTagUi())
                     },
-                    tags = tagRepository.getAllStream().filterNotNull().first().map { it.toTagUi() })
-            }.collect{_chatState.value = it}
+                    tags = tagRepository.getAllStream().filterNotNull().first()
+                        .map { it.toTagUi() })
+            }.collect { _chatState.value = it }
 
         }
     }
 
-    fun getTag(){}
+    fun getTag() {}
     fun sendMessage() {
         val text = chatState.value.input.text.trim()
 
@@ -79,7 +88,7 @@ class ChatViewModel(
                     id,
                     null,
                     null,
-                   text,
+                    text,
                     true,
                     LocalDateTime.now()
                 )
@@ -207,18 +216,29 @@ class ChatViewModel(
         }
     }
 
-    fun applyTag(tagUi: TagUi) {
-        if (chatState.value.selectedMessages.size != 1){
+    fun applyTag(tagUi: TagUi?) {
+        if (chatState.value.selectedMessages.size != 1) {
             Log.e("Custom", "Applying tag, but selected messages size is not one!")
             return;
         }
         var message = chatState.value.selectedMessages[0]
-        message = message.copy(tagId = tagUi.id)
+        message = message.copy(tagId = tagUi?.id)
         Log.i("custom", message.toMessage().toString())
 
         viewModelScope.launch {
             messageRepository.updateItem(
                 message.toMessage()
+            )
+        }
+    }
+
+    fun applyTag(message: MessageUi, tagUi: TagUi?) {
+        val updatedMessage = message.copy(tagId = tagUi?.id)
+        Log.i("custom", updatedMessage.toMessage().toString())
+
+        viewModelScope.launch {
+            messageRepository.updateItem(
+                updatedMessage.toMessage()
             )
         }
 

@@ -9,6 +9,7 @@ import com.example.journalchat.ui.uiModels.TagUi
 
 data class ChatState(
     val chat: ChatUi = ChatUi(),
+    val selectedTag: List<TagUi> = listOf(),
     val messages: List<MessageUi> = listOf(),
     val selectedMessages: List<MessageUi> = listOf(),
     val mode: ChatMode = ChatMode.Chatting,

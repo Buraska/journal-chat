@@ -43,16 +43,16 @@ class ChatViewModel(
     private val _chatState = MutableStateFlow(ChatState())
     val chatState: StateFlow<ChatState> = _chatState.asStateFlow()
 
-    private var _selectedTags = mutableSetOf<TagUi>()
-    val selectedTags: List<TagUi>
-        get() = _selectedTags.toList()
+    private var _userTags = mutableSetOf<TagUi>()
+    val userTags: List<TagUi>
+        get() = _userTags.toList()
 
     init {
         viewModelScope.launch {
             val chatFlow = chatRepository.getStream(id).filterNotNull()
             val messageFlow = messageRepository.getAllStream(id).filterNotNull()
             combine(chatFlow, messageFlow) { chat, messages ->
-                _selectedTags = mutableSetOf()
+                _userTags = mutableSetOf()
                 ChatState(
                     chat = chat.toChatUi(),
                     messages = messages.map { message ->
@@ -64,7 +64,7 @@ class ChatViewModel(
                         if (message.tagId != null) {
                             tag = tagRepository.getStream(message.tagId).first()
                             if (tag != null) {
-                                _selectedTags.add(tag.toTagUi())
+                                _userTags.add(tag.toTagUi())
                             }
                         }
                         message.toMessageUi(ref?.toMessageUi(), tag?.toTagUi())
@@ -76,7 +76,15 @@ class ChatViewModel(
         }
     }
 
-    fun getTag() {}
+
+    fun selectTag(tagUi: TagUi){
+        var selectedTag: TagUi? = null
+        if (chatState.value.filteringTag != tagUi){
+            selectedTag = tagUi
+        }
+        _chatState.update { currentState -> currentState.copy(filteringTag = selectedTag) }
+    }
+
     fun sendMessage() {
         val text = chatState.value.input.text.trim()
 
@@ -98,9 +106,11 @@ class ChatViewModel(
     }
 
     fun inputChanged(input: TextFieldValue) {
-//        val currentText = chatState.value.input
-//        val newCursorPosition = currentText.selection.end + (input.text.length - currentText.text.length)
         _chatState.update { currentState -> currentState.copy(input = input) }
+    }
+
+    fun searchInputChanged(input: TextFieldValue) {
+        _chatState.update { currentState -> currentState.copy(searchInput = input) }
     }
 
     fun getSelectedCount(): Int {
@@ -244,6 +254,7 @@ class ChatViewModel(
 
 
     }
+
 
 
 }

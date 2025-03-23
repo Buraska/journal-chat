@@ -34,4 +34,5 @@
     <string name="replying">Replying</string>
     <string name="update_chat">Update chat</string>
     <string name="expand_emoji_list">Expand emoji list</string>
+    <string name="searching">Searching</string>
 </resources>

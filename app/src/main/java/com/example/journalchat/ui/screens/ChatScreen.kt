@@ -2,10 +2,8 @@ package com.example.journalchat.ui.screens
 
 import android.util.Log
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -24,9 +22,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.BasicTextField
@@ -39,9 +39,11 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Face
 import androidx.compose.material.icons.outlined.MoreVert
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -54,6 +56,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -89,6 +92,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.PopupProperties
@@ -97,7 +101,6 @@ import com.example.journalchat.AppBarNavigationIconBack
 import com.example.journalchat.NavigationDestination
 import com.example.journalchat.R
 import com.example.journalchat.ChatTopAppBar
-import com.example.journalchat.data.models.Tag
 import com.example.journalchat.ui.AppViewModelProvider
 import com.example.journalchat.ui.states.ChatMode
 import com.example.journalchat.ui.theme.Typography
@@ -128,7 +131,7 @@ fun ChatScreen(
 ) {
     val chatState by viewModel.chatState.collectAsState()
 
-    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
     val scrollState = rememberLazyListState()
     val sheetState = rememberModalBottomSheetState()
 
@@ -165,21 +168,30 @@ fun ChatScreen(
                         onStopAction = { viewModel.stopAction() })
                 }
 
-                ChatMode.Chatting -> ChatTopAppBar(
-                    title = chatState.chat.name,
-                    navIcon = { AppBarNavigationIconBack { navigateUp() } },
-                    topAppBarScrollBehavior = scrollBehavior,
-                    action = {
-                        OptionButton(onClick = {
-                            isContextMenuVisible = true
-                        })
-                        OptionMenu(
-                            isContextMenuVisible = isContextMenuVisible,
-                            onEditChatClicked = { onEditChatClicked() },
-                            onDismissRequest = { isContextMenuVisible = false },
-                        )
-                    }
-                )
+                ChatMode.Chatting -> {
+                    ChatTopAppBar(
+                        title = chatState.chat.name,
+                        navIcon = { AppBarNavigationIconBack { navigateUp() } },
+                        topAppBarScrollBehavior = scrollBehavior,
+                        action = {
+                            IconButton(onClick = { viewModel.switchMode(ChatMode.Searching) }) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Search,
+                                    contentDescription = stringResource(R.string.search)
+                                )
+                            }
+                            OptionButton(onClick = {
+                                isContextMenuVisible = true
+                            })
+                            OptionMenu(
+                                isContextMenuVisible = isContextMenuVisible,
+                                onEditChatClicked = { onEditChatClicked() },
+                                onDismissRequest = { isContextMenuVisible = false },
+                            )
+                        }
+                    )
+
+                }
 
                 ChatMode.Replying -> {
                     ActionTopAppBar(
@@ -187,6 +199,12 @@ fun ChatScreen(
                         onStopAction = { viewModel.stopAction() })
                 }
 
+                ChatMode.Searching -> {
+                    ActionTopAppBar(
+                        stringResource(R.string.searching),
+                        onStopAction = { viewModel.stopAction() }
+                    )
+                }
             }
         },
         modifier = modifier
@@ -211,11 +229,22 @@ fun ChatScreen(
                 notificationBody = notificationBody,
             )
         }
+
         Column(
             modifier = modifier
                 .fillMaxSize()
                 .padding(top = innerPadding.calculateTopPadding()),
         ) {
+            if (chatState.mode == ChatMode.Searching) {
+                EmojiSearchBar(
+                    userTags = viewModel.userTags,
+                    filteringTag = chatState.filteringTag,
+                    onEmojiClick = viewModel::selectTag,
+                    inputValue = chatState.searchInput,
+                    onValueChange = viewModel::searchInputChanged
+                )
+            }
+
             Messages(
                 messages = chatState.messages,
                 scrollState,
@@ -225,9 +254,10 @@ fun ChatScreen(
                         viewModel.selectMessage(messageUi)
                     } else {
                         if (messageUi.tag != null) viewModel.applyTag(messageUi, null)
-                        else{isEmojiPopUpVisible = true
-                        viewModel.selectMessage(messageUi)
-                    }
+                        else {
+                            isEmojiPopUpVisible = true
+                            viewModel.selectMessage(messageUi)
+                        }
                     }
                 },
                 onMessageLongClick = { messageUi ->
@@ -235,20 +265,23 @@ fun ChatScreen(
                         viewModel.selectMessage(messageUi)
                 }
             )
-            ChatInputField(
-                value = chatState.input,
-                onValueChange = { input -> viewModel.inputChanged(input) },
-                onSendMessage = {
-                    viewModel.sendMessage()
-                },
-                onEditMessage = { viewModel.editMessageText() },
-                onReplyMessage = { viewModel.replyMessage() },
-                mode = chatState.mode,
-                focusRequester = focusRequester,
-                modifier = Modifier
-                    .imePadding()
-                    .navigationBarsPadding()
-            )
+
+            if (chatState.mode != ChatMode.Searching) {
+                ChatInputField(
+                    value = chatState.input,
+                    onValueChange = { input -> viewModel.inputChanged(input) },
+                    onSendMessage = {
+                        viewModel.sendMessage()
+                    },
+                    onEditMessage = { viewModel.editMessageText() },
+                    onReplyMessage = { viewModel.replyMessage() },
+                    mode = chatState.mode,
+                    focusRequester = focusRequester,
+                    modifier = Modifier
+                        .imePadding()
+                        .navigationBarsPadding()
+                )
+            }
         }
 
     }
@@ -266,16 +299,50 @@ fun ChatScreen(
         )
     }
     if (isEmojiPopUpVisible) EmojiDialog(
-        selectedTags = viewModel.selectedTags,
-        onTagClick = {tag -> viewModel.applyTag(tag)},
+        selectedTags = viewModel.userTags,
+        onTagClick = { tag ->
+            viewModel.applyTag(tag)
+            isEmojiPopUpVisible = false
+        },
         onDismissRequest = {
-        viewModel.clearSelection()
-        isEmojiPopUpVisible = false
-    },
+            viewModel.clearSelection()
+            isEmojiPopUpVisible = false
+        },
         onExpandClick = {
             isBottomSheetVisible = true
             isEmojiPopUpVisible = false
         })
+}
+
+@Composable
+fun EmojiSearchBar(
+    userTags: List<TagUi>,
+    filteringTag: TagUi?,
+    onEmojiClick: (TagUi) -> Unit,
+    inputValue: TextFieldValue,
+    onValueChange: (TextFieldValue) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    TextField(
+        value = inputValue,
+        placeholder = {Text("Search for..")},
+        onValueChange = onValueChange,
+        maxLines = 1,
+        modifier = Modifier.fillMaxWidth()
+    )
+    LazyRow {
+        items(userTags) { tag ->
+            val color = if (tag == filteringTag) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface
+            Card(colors = CardDefaults.cardColors(containerColor = color), modifier = modifier.padding(4.dp).clickable { onEmojiClick(tag)}) {
+                Text(
+                    text = tag.emojiCode,
+                    textAlign = TextAlign.Center,
+                    fontSize = 20.sp,
+                    modifier = modifier.padding(4.dp)
+                )
+            }
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -292,9 +359,17 @@ fun EmojiBottomSheet(
         sheetState = sheetState,
         modifier = modifier
     ) {
-        LazyVerticalGrid(columns = GridCells.Fixed(6), horizontalArrangement = Arrangement.Center, modifier = Modifier) {
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(6),
+            horizontalArrangement = Arrangement.Center,
+            modifier = Modifier
+        ) {
             items(tags) { tag ->
-                Emoji(text = tag.emojiCode, onTagClick = { onTagClick(tag)}, modifier = Modifier.align(Alignment.CenterHorizontally))
+                Emoji(
+                    text = tag.emojiCode,
+                    onTagClick = { onTagClick(tag) },
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
             }
         }
     }
@@ -318,9 +393,18 @@ fun EmojiDialog(
         .clickable(interactionSource, indication = null) { onDismissRequest() }
     ) {
         Card(modifier = modifier.align(Alignment.Center)) {
-            LazyVerticalGrid(columns = GridCells.Fixed(5), modifier = Modifier.padding(16.dp).fillMaxWidth(0.7f)) {
-                items(selectedTags) {tag ->
-                    Emoji(text = tag.emojiCode, onTagClick = { onTagClick(tag)}, modifier = Modifier.align(Alignment.CenterHorizontally))
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(5),
+                modifier = Modifier
+                    .padding(16.dp)
+                    .fillMaxWidth(0.7f)
+            ) {
+                items(selectedTags) { tag ->
+                    Emoji(
+                        text = tag.emojiCode,
+                        onTagClick = { onTagClick(tag) },
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    )
                 }
                 item {
                     IconButton(onClick = onExpandClick) {
@@ -336,13 +420,18 @@ fun EmojiDialog(
 }
 
 @Composable
-fun Emoji(text: String, onTagClick: () -> Unit, modifier: Modifier = Modifier) {
+fun Emoji(
+    text: String,
+    onTagClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    fontSize: TextUnit = 36.sp
+) {
     Text(
         text = text,
         textAlign = TextAlign.Center,
-        fontSize = 36.sp,
+        fontSize = fontSize,
         modifier = modifier
-            .clickable { onTagClick()}
+            .clickable { onTagClick() }
     )
 }
 
@@ -651,7 +740,7 @@ fun Message(
                 var isShort = false
                 var cardHeight = mainContent.height + replyHeight
                 cardHeight += tag?.height ?: date.height
-                if (tag == null && cardWidth == date.width){
+                if (tag == null && cardWidth == date.width) {
                     cardHeight -= date.height
                     cardWidth += mainContent.width
                     isShort = true
@@ -800,7 +889,12 @@ fun ChatPreview() {
                 onClick = { /*TODO*/ },
                 onLongClick = { /*TODO*/ })
             Message(
-                message = MessageUi(0, content = "da. Об этом много говорят на кухнях",  tag = TagUi(0, "\uD83D\uDE00"), chatId = 0),
+                message = MessageUi(
+                    0,
+                    content = "da. Об этом много говорят на кухнях",
+                    tag = TagUi(0, "\uD83D\uDE00"),
+                    chatId = 0
+                ),
                 onClick = { /*TODO*/ },
                 onLongClick = { /*TODO*/ })
         }
@@ -809,5 +903,5 @@ fun ChatPreview() {
             onClick = { /*TODO*/ },
             onLongClick = { /*TODO*/ })
     }
-    }
+}
 

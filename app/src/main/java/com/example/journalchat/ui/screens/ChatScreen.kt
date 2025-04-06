@@ -120,6 +120,7 @@ import com.example.journalchat.ui.viewModels.ChatViewModel
 import org.intellij.lang.annotations.JdkConstants.HorizontalAlignment
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import kotlin.random.Random
 
 object ChatScreenDestination : NavigationDestination {
     override val route = "chat"
@@ -670,7 +671,7 @@ fun Message(
     if (!message.isPrimary) {
         horizontalArrangement = Arrangement.Start
         shape = nonPrimaryMessageShape
-        containerColor = MaterialTheme.colorScheme.secondary
+        containerColor = MaterialTheme.colorScheme.tertiary
     }
 
     Row(
@@ -736,7 +737,6 @@ fun Message(
                 if (message.tag != null) {
                     tag = subcompose("tag") {
                         Card(
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.onPrimary),
                             modifier = Modifier.padding(top = 4.dp, end = 4.dp)
                         ) {
                             Text(
@@ -776,10 +776,14 @@ fun Message(
 
                 var references: Placeable? = null
                 if (message.references != null) {
+                    val text: String
+                    val refCount = message.references.size
+                    text = if (refCount > 1) "$refCount comments" else "$refCount comment"
+
                     val referenceText = subcompose("referencesText") {
                         Row(horizontalArrangement = Arrangement.SpaceBetween) {
                             Text(
-                                "3 comments",
+                                text,
                                 style = Typography.bodySmall,
                                 modifier = Modifier.align(Alignment.CenterVertically)
                             )
@@ -791,10 +795,10 @@ fun Message(
                         Column(
                             modifier = Modifier.width((maxOf(cardWidth.toDp(), referenceText.width.toDp())))
                         ) {
-                            Divider(modifier = Modifier.padding(4.dp))
+                            Divider(modifier = Modifier.padding(4.dp), color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.45f))
                             Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                                 Text(
-                                    "3 comments",
+                                    text,
                                     style = Typography.bodySmall,
                                     modifier = Modifier.align(Alignment.CenterVertically)
                                 )

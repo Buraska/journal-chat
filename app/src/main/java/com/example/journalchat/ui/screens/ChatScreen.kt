@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,6 +22,9 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
@@ -38,6 +43,7 @@ import androidx.compose.material.icons.outlined.Clear
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Face
+import androidx.compose.material.icons.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Card
@@ -87,6 +93,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -94,6 +101,7 @@ import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.max
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.PopupProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -109,6 +117,7 @@ import com.example.journalchat.ui.theme.primaryMessageShape
 import com.example.journalchat.ui.uiModels.MessageUi
 import com.example.journalchat.ui.uiModels.TagUi
 import com.example.journalchat.ui.viewModels.ChatViewModel
+import org.intellij.lang.annotations.JdkConstants.HorizontalAlignment
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -325,15 +334,20 @@ fun EmojiSearchBar(
 ) {
     TextField(
         value = inputValue,
-        placeholder = {Text("Search for..")},
+        placeholder = { Text("Search for..") },
         onValueChange = onValueChange,
         maxLines = 1,
         modifier = Modifier.fillMaxWidth()
     )
     LazyRow {
         items(userTags) { tag ->
-            val color = if (tag == filteringTag) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface
-            Card(colors = CardDefaults.cardColors(containerColor = color), modifier = modifier.padding(4.dp).clickable { onEmojiClick(tag)}) {
+            val color =
+                if (tag == filteringTag) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface
+            Card(
+                colors = CardDefaults.cardColors(containerColor = color),
+                modifier = modifier
+                    .padding(4.dp)
+                    .clickable { onEmojiClick(tag) }) {
                 Text(
                     text = tag.emojiCode,
                     textAlign = TextAlign.Center,
@@ -717,6 +731,7 @@ fun Message(
                     }.first().measure(constraints)
                 }
 
+
                 var tag: Placeable? = null
                 if (message.tag != null) {
                     tag = subcompose("tag") {
@@ -733,13 +748,15 @@ fun Message(
                     }.first().measure(constraints)
                 }
 
-                val replyHeight = reply?.height ?: 0
                 val replyWidth = reply?.width ?: 0
                 val tagWidth = tag?.width ?: 0
                 var cardWidth = maxOf(replyWidth, mainContent.width, date.width + tagWidth)
-                var isShort = false
+
+                val replyHeight = reply?.height ?: 0
                 var cardHeight = mainContent.height + replyHeight
                 cardHeight += tag?.height ?: date.height
+
+                var isShort = false
                 if (tag == null && cardWidth == date.width) {
                     cardHeight -= date.height
                     cardWidth += mainContent.width
@@ -756,6 +773,42 @@ fun Message(
                         }
                     }.first().measure(constraints)
                 }
+
+                var references: Placeable? = null
+                if (message.references != null) {
+                    val referenceText = subcompose("referencesText") {
+                        Row(horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(
+                                "3 comments",
+                                style = Typography.bodySmall,
+                                modifier = Modifier.align(Alignment.CenterVertically)
+                            )
+                            Icon(Icons.Outlined.KeyboardArrowRight, "asd")
+                        }
+                    }.first().measure(constraints)
+
+                    references = subcompose("references") {
+                        Column(
+                            modifier = Modifier.width((maxOf(cardWidth.toDp(), referenceText.width.toDp())))
+                        ) {
+                            Divider(modifier = Modifier.padding(4.dp))
+                            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                                Text(
+                                    "3 comments",
+                                    style = Typography.bodySmall,
+                                    modifier = Modifier.align(Alignment.CenterVertically)
+                                )
+                                Icon(Icons.Outlined.KeyboardArrowRight, "asd")
+                            }
+                        }
+                    }.first().measure(constraints)
+                }
+
+                val referencesHeight = references?.height ?: 0
+                val referencesWidth = references?.width ?: 0
+                cardHeight += referencesHeight
+                cardWidth = maxOf(cardWidth, referencesWidth)
+
                 layout(cardWidth, cardHeight) {
                     var offset = 0
                     if (reply != null && replyArea != null) {
@@ -772,9 +825,12 @@ fun Message(
                     }
                     if (isShort) offset -= date.height
                     date.place(cardWidth - date.width, offset)
+                    offset += date.height
 
+                    references?.place(0, offset)
                 }
             }
+
         }
     }
 }
@@ -885,7 +941,12 @@ fun ChatPreview() {
                 onClick = { /*TODO*/ },
                 onLongClick = { /*TODO*/ })
             Message(
-                message = MessageUi(0, content = "da. Об этом много говорят на кухнях", chatId = 0),
+                message = MessageUi(
+                    0,
+                    content = "da. Об этом много говорят на кухнях",
+                    chatId = 0,
+                    references = listOf(MessageUi(0, content = "asda", chatId = 0))
+                ),
                 onClick = { /*TODO*/ },
                 onLongClick = { /*TODO*/ })
             Message(

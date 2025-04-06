@@ -17,7 +17,8 @@ data class MessageUi (
     val content:String,
     val isPrimary: Boolean = true,
     val date: LocalDateTime = LocalDateTime.now(),
-    var isSelected: Boolean = false
+    var isSelected: Boolean = false,
+    val references: List<MessageUi>? = listOf(),
 )
 
 fun MessageUi.toMessage(): Message {

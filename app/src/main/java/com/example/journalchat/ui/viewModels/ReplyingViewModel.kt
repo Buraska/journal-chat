@@ -12,36 +12,36 @@ import com.example.journalchat.data.repositories.ChatRepository
 import com.example.journalchat.data.repositories.MessageRepository
 import com.example.journalchat.data.repositories.TagRepository
 import com.example.journalchat.ui.states.ChatMode
-import com.example.journalchat.ui.states.ChatState
+import com.example.journalchat.ui.states.ReplyingState
 import com.example.journalchat.ui.uiModels.MessageUi
 import com.example.journalchat.ui.uiModels.TagUi
-import com.example.journalchat.ui.uiModels.toChatUi
 import com.example.journalchat.ui.uiModels.toMessage
 import com.example.journalchat.ui.uiModels.toMessageUi
 import com.example.journalchat.ui.uiModels.toTagUi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 
-class ChatViewModel(
+class ReplyingViewModel(
     savedStateHandle: SavedStateHandle,
     private val chatRepository: ChatRepository,
     private val messageRepository: MessageRepository,
     private val tagRepository: TagRepository
 ) : ViewModel() {
+    // TODO a lot of dublicate code
 
-    private val id: Long = checkNotNull(savedStateHandle["chatId"])
+    private val messageId: Long = checkNotNull(savedStateHandle["messageId"])
 
-    val chat = chatRepository.getStream(id)
+//    val chat = chatRepository.getStream(messageId)
 
-    private val _chatState = MutableStateFlow(ChatState())
-    val chatState: StateFlow<ChatState> = _chatState.asStateFlow()
+    private val _chatState = MutableStateFlow(ReplyingState(MessageUi(0, 0, content = "")))
+    val chatState: StateFlow<ReplyingState> = _chatState.asStateFlow()
 
     private var _userTags = mutableSetOf<TagUi>()
     val userTags: List<TagUi>
@@ -49,24 +49,21 @@ class ChatViewModel(
 
     init {
         viewModelScope.launch {
-            val chatFlow = chatRepository.getStream(id).filterNotNull()
-            val messageFlow = messageRepository.getAllStream(id).filterNotNull()
-            combine(chatFlow, messageFlow) { chat, messages ->
+            val messageFlow = messageRepository.getAllStreamFilterByReferenceId(messageId).filterNotNull()
+            messageFlow.map {messages ->
                 _userTags = mutableSetOf()
-                ChatState(
-                    chat = chat.toChatUi(),
+                ReplyingState(
+                    replyingMessage = messageRepository.getStream(messageId).filterNotNull().first().toMessageUi(),
                     messages = messages.map { message ->
                         var tag: Tag? = null
-                        val refs: List<Message> = messages.filter{it.referenceId == message.id}
-
                         if (message.tagId != null) {
                             tag = tagRepository.getStream(message.tagId).first()
                             if (tag != null) {
                                 _userTags.add(tag.toTagUi())
                             }
                         }
-                        message.toMessageUi(tag, refs)
-                    }.filter { it.referenceId == null },
+                        message.toMessageUi(tag)
+                    },
                     tags = tagRepository.getAllStream().filterNotNull().first()
                         .map { it.toTagUi() })
 
@@ -92,15 +89,14 @@ class ChatViewModel(
             messageRepository.insertItem(
                 Message(
                     0,
-                    id,
+                    chatState.value.replyingMessage.chatId,
                     null,
-                    null,
+                    messageId,
                     text,
                     true,
                     LocalDateTime.now()
                 )
             )
-//            inputChanged("")
         }
     }
 
@@ -210,7 +206,7 @@ class ChatViewModel(
 
         val newMessage = Message(
             0,
-            id,
+            messageId,
             null,
             selectedMessage.id,
             chatState.value.input.text,

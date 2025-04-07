@@ -22,6 +22,8 @@ import com.example.journalchat.ui.screens.ChatCreationScreenDestination
 import com.example.journalchat.ui.screens.ChatEditionDestination
 import com.example.journalchat.ui.screens.ChatEditionScreen
 import com.example.journalchat.ui.screens.ChatListScreenDestination
+import com.example.journalchat.ui.screens.ReplyingScreen
+import com.example.journalchat.ui.screens.ReplyingScreenDestination
 import kotlin.math.log
 
 val homeRoute = ChatListScreenDestination.route
@@ -40,25 +42,44 @@ fun JournalNavHost(
             ChatListScreen(
                 onCreateButton = { navController.navigate(ChatCreationScreenDestination.route) },
                 exposeDrawer = { },
-                onItemClicked = {chatId -> navController.navigate("${ChatScreenDestination.route}/$chatId") },
-                onEditClicked = {chatId -> navController.navigate("${ChatEditionDestination.route}/$chatId")})
+                onItemClicked = { chatId -> navController.navigate("${ChatScreenDestination.route}/$chatId") },
+                onEditClicked = { chatId -> navController.navigate("${ChatEditionDestination.route}/$chatId") })
         }
         composable(route = ChatCreationScreenDestination.route) {
             ChatCreationScreen(navigateUp = { navController.navigateUpOrAtHome() })
         }
-        composable(route = ChatScreenDestination.routeWithArgs,
+        composable(
+            route = ChatScreenDestination.routeWithArgs,
             arguments = listOf(navArgument(ChatScreenDestination.chatIdArg) {
                 type = NavType.LongType
             })
-        ) {
-            backStackEntry ->
+        ) { backStackEntry ->
             val chatId = backStackEntry.arguments?.getLong(ChatScreenDestination.chatIdArg)
-            ChatScreen(navigateUp = { navController.navigateUpOrAtHome()},
-                onEditChatClicked = {chatId?.let {chatId ->
-                    navController.navigate("${ChatEditionDestination.route}/$chatId")
-                }})
+            ChatScreen(
+                navigateUp = { navController.navigateUpOrAtHome() },
+                onEditChatClicked = {
+                    chatId?.let { chatId ->
+                        navController.navigate("${ChatEditionDestination.route}/$chatId")
+                    } },
+                onMessageCommentsClicked = { messageId ->
+                        navController.navigate("${ReplyingScreenDestination.route}/${messageId}")
+                }
+            )
         }
-        composable(route = ChatEditionDestination.routeWithArgs,
+        composable(
+            route = ReplyingScreenDestination.routeWithArgs,
+            arguments = listOf(navArgument(ReplyingScreenDestination.messageIdArg) {
+                type = NavType.LongType
+            })
+        ) { backStackEntry ->
+            val messageId = backStackEntry.arguments?.getLong(ReplyingScreenDestination.messageIdArg)
+            ReplyingScreen(
+                navigateUp = { navController.navigateUpOrAtHome() },
+                onEditChatClicked = {},
+            )
+        }
+        composable(
+            route = ChatEditionDestination.routeWithArgs,
             arguments = listOf(navArgument(ChatEditionDestination.chatIdArg) {
                 type = NavType.LongType
             })

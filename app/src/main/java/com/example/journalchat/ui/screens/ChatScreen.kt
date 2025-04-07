@@ -4,15 +4,12 @@ import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,8 +20,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentSize
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
@@ -47,9 +42,7 @@ import androidx.compose.material.icons.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -93,7 +86,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -101,7 +93,6 @@ import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.max
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.PopupProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -117,10 +108,8 @@ import com.example.journalchat.ui.theme.primaryMessageShape
 import com.example.journalchat.ui.uiModels.MessageUi
 import com.example.journalchat.ui.uiModels.TagUi
 import com.example.journalchat.ui.viewModels.ChatViewModel
-import org.intellij.lang.annotations.JdkConstants.HorizontalAlignment
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import kotlin.random.Random
 
 object ChatScreenDestination : NavigationDestination {
     override val route = "chat"
@@ -129,13 +118,14 @@ object ChatScreenDestination : NavigationDestination {
 }
 
 @OptIn(
-    ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class,
+    ExperimentalMaterial3Api::class,
     ExperimentalComposeUiApi::class
 )
 @Composable
 fun ChatScreen(
     navigateUp: () -> Unit,
     onEditChatClicked: () -> Unit,
+    onMessageCommentsClicked: (Long) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ChatViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
@@ -273,7 +263,8 @@ fun ChatScreen(
                 onMessageLongClick = { messageUi ->
                     if (chatState.mode != ChatMode.Editing)
                         viewModel.selectMessage(messageUi)
-                }
+                },
+                onMessageCommentsClicked = onMessageCommentsClicked
             )
 
             if (chatState.mode != ChatMode.Searching) {
@@ -323,6 +314,7 @@ fun ChatScreen(
             isEmojiPopUpVisible = false
         })
 }
+
 
 @Composable
 fun EmojiSearchBar(
@@ -593,7 +585,8 @@ fun Messages(
     onMessageClick: (MessageUi) -> Unit,
     onMessageLongClick: (MessageUi) -> Unit,
     modifier: Modifier = Modifier,
-    contentPadding: PaddingValues = PaddingValues(0.dp)
+    contentPadding: PaddingValues = PaddingValues(0.dp),
+    onMessageCommentsClicked: (Long) -> Unit
 ) {
     val fMessage = messages.getOrNull(0);
     var isLastItemPrimary: Boolean?
@@ -616,7 +609,8 @@ fun Messages(
                 message = message,
                 modifier = Modifier.fillMaxWidth(),
                 onClick = { onMessageClick(message) },
-                onLongClick = { onMessageLongClick(message) }
+                onLongClick = { onMessageLongClick(message) },
+                onMessageCommentsClicked = onMessageCommentsClicked
             )
 
             isLastItemPrimary = message.isPrimary
@@ -661,7 +655,8 @@ fun Message(
     message: MessageUi,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onMessageCommentsClicked: (Long) -> Unit
 ) {
     var shape = primaryMessageShape
     var containerColor = MaterialTheme.colorScheme.surfaceVariant
@@ -775,7 +770,7 @@ fun Message(
                 }
 
                 var references: Placeable? = null
-                if (message.references != null) {
+                if (message.references.isNotEmpty()) {
                     val text: String
                     val refCount = message.references.size
                     text = if (refCount > 1) "$refCount comments" else "$refCount comment"
@@ -793,16 +788,28 @@ fun Message(
 
                     references = subcompose("references") {
                         Column(
-                            modifier = Modifier.width((maxOf(cardWidth.toDp(), referenceText.width.toDp())))
+                            modifier = Modifier.width(
+                                (maxOf(
+                                    cardWidth.toDp(),
+                                    referenceText.width.toDp()
+                                ))
+                            )
                         ) {
-                            Divider(modifier = Modifier.padding(4.dp), color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.45f))
-                            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                            Divider(
+                                modifier = Modifier.padding(4.dp),
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.45f)
+                            )
+                            Row(
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onMessageCommentsClicked(message.id) }) {
                                 Text(
                                     text,
                                     style = Typography.bodySmall,
                                     modifier = Modifier.align(Alignment.CenterVertically)
                                 )
-                                Icon(Icons.Outlined.KeyboardArrowRight, "asd")
+                                Icon(Icons.Outlined.KeyboardArrowRight, "Open message comments")
                             }
                         }
                     }.first().measure(constraints)
@@ -938,12 +945,15 @@ fun ChatPreview() {
             Message(
                 message = MessageUi(0, content = "da", tag = TagUi(0, "\uD83D\uDE00"), chatId = 0),
                 onClick = { /*TODO*/ },
-                onLongClick = { /*TODO*/ }
+                onLongClick = { /*TODO*/ },
+                onMessageCommentsClicked = {}
             )
             Message(
                 message = MessageUi(0, content = "da", chatId = 0),
                 onClick = { /*TODO*/ },
-                onLongClick = { /*TODO*/ })
+                onLongClick = { /*TODO*/ },
+                onMessageCommentsClicked = {  }
+            )
             Message(
                 message = MessageUi(
                     0,
@@ -952,7 +962,9 @@ fun ChatPreview() {
                     references = listOf(MessageUi(0, content = "asda", chatId = 0))
                 ),
                 onClick = { /*TODO*/ },
-                onLongClick = { /*TODO*/ })
+                onLongClick = { /*TODO*/ },
+                onMessageCommentsClicked = {  }
+            )
             Message(
                 message = MessageUi(
                     0,
@@ -961,12 +973,16 @@ fun ChatPreview() {
                     chatId = 0
                 ),
                 onClick = { /*TODO*/ },
-                onLongClick = { /*TODO*/ })
+                onLongClick = { /*TODO*/ },
+                onMessageCommentsClicked = {  }
+            )
         }
         Message(
             message = MessageUi(0, content = "da", tag = TagUi(0, "\uD83D\uDE00"), chatId = 0),
             onClick = { /*TODO*/ },
-            onLongClick = { /*TODO*/ })
+            onLongClick = { /*TODO*/ },
+            onMessageCommentsClicked = {  }
+        )
     }
 }
 

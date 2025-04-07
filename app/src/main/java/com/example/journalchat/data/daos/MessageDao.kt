@@ -28,6 +28,15 @@ interface MessageDao {
     @Query("SELECT * from message WHERE chat_id = :chatId ORDER BY date DESC")
     fun getAll(chatId: Long): Flow<List<Message>>
 
+    @Query("SELECT * from message WHERE chat_id = :chatId AND referenceId IS NULL ORDER BY date DESC")
+    fun getAllWithoutReferences(chatId: Long): Flow<List<Message>>
+
+    @Query("SELECT * from message ORDER BY date DESC")
+    fun getAll(): Flow<List<Message>>
+
+    @Query("SELECT * from message WHERE referenceId = :referenceId ORDER BY date DESC")
+    fun getAllFilterByReferenceId(referenceId: Long): Flow<List<Message>>
+
     @Transaction
     suspend fun deleteMessages(messages: List<Message>)
     {

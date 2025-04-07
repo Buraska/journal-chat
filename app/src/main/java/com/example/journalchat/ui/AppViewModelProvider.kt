@@ -27,13 +27,13 @@ import com.example.journalchat.ui.viewModels.ChatEditionViewModel
 import com.example.journalchat.ui.viewModels.ChatListViewModel
 import com.example.journalchat.ui.viewModels.ChatViewModel
 import com.example.journalchat.ui.viewModels.CreateChatViewModel
+import com.example.journalchat.ui.viewModels.ReplyingViewModel
 
 /**
  * Provides Factory to create instance of ViewModel for the entire Inventory app
  */
 object AppViewModelProvider {
     val Factory = viewModelFactory {
-        // Initializer for ItemEditViewModel
         initializer {
             ChatListViewModel(
                 inventoryApplication().container.chatRepository
@@ -46,6 +46,14 @@ object AppViewModelProvider {
         }
         initializer {
             ChatViewModel(
+                this.createSavedStateHandle(),
+                inventoryApplication().container.chatRepository,
+                inventoryApplication().container.messageRepository,
+                inventoryApplication().container.tagRepository,
+            )
+        }
+        initializer {
+            ReplyingViewModel(
                 this.createSavedStateHandle(),
                 inventoryApplication().container.chatRepository,
                 inventoryApplication().container.messageRepository,

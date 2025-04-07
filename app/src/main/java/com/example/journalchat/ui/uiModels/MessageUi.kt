@@ -18,7 +18,7 @@ data class MessageUi (
     val isPrimary: Boolean = true,
     val date: LocalDateTime = LocalDateTime.now(),
     var isSelected: Boolean = false,
-    val references: List<MessageUi>? = listOf(),
+    val references: List<MessageUi> = listOf(),
 )
 
 fun MessageUi.toMessage(): Message {
@@ -29,6 +29,17 @@ fun Message.toMessageUi(): MessageUi {
     return MessageUi(id, chatId, tagId,null, referenceId,null, content, isPrimary, date)
 }
 
-fun Message.toMessageUi(reference: MessageUi?, tag: TagUi?): MessageUi {
-    return MessageUi(id, chatId, tag?.id ,tag, referenceId, reference, content, isPrimary, date)
+
+fun Message.toMessageUi(tag: Tag?): MessageUi {
+    return MessageUi(id, chatId, tagId,tag?.toTagUi(), referenceId,null, content, isPrimary, date)
 }
+
+fun Message.toMessageUi(reference: Message?, tag: Tag?, refs: List<Message>): MessageUi {
+    return MessageUi(id, chatId, tag?.id ,tag?.toTagUi(), referenceId, reference?.toMessageUi(), content, isPrimary, date, references = refs.map { it.toMessageUi() })
+}
+
+
+fun Message.toMessageUi(tag: Tag?, refs: List<Message>): MessageUi {
+    return MessageUi(id, chatId, tag?.id ,tag?.toTagUi(), referenceId, null, content, isPrimary, date, references = refs.map { it.toMessageUi() })
+}
+

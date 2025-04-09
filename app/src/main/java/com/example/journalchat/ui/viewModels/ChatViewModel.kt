@@ -84,7 +84,7 @@ class ChatViewModel(
         _chatState.update { currentState -> currentState.copy(filteringTag = selectedTag) }
     }
 
-    fun sendMessage() {
+    fun sendMessage(isPrimary: Boolean = true) {
         val text = chatState.value.input.text.trim()
 
         if (text == "") return
@@ -96,11 +96,10 @@ class ChatViewModel(
                     null,
                     null,
                     text,
-                    true,
+                    isPrimary,
                     LocalDateTime.now()
                 )
             )
-//            inputChanged("")
         }
     }
 

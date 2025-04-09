@@ -6,6 +6,9 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -71,6 +74,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
@@ -272,8 +276,9 @@ fun ChatScreen(
                     value = chatState.input,
                     onValueChange = { input -> viewModel.inputChanged(input) },
                     onSendMessage = {
-                        viewModel.sendMessage()
+                        viewModel.sendMessage(true)
                     },
+                    onSendAlternative = {viewModel.sendMessage(false)},
                     onEditMessage = { viewModel.editMessageText() },
                     onReplyMessage = { viewModel.replyMessage() },
                     mode = chatState.mode,
@@ -666,7 +671,7 @@ fun Message(
     if (!message.isPrimary) {
         horizontalArrangement = Arrangement.Start
         shape = nonPrimaryMessageShape
-        containerColor = MaterialTheme.colorScheme.tertiary
+        containerColor = MaterialTheme.colorScheme.secondaryContainer
     }
 
     Row(
@@ -731,7 +736,7 @@ fun Message(
                 var tag: Placeable? = null
                 if (message.tag != null) {
                     tag = subcompose("tag") {
-                        Card(
+                        Box(
                             modifier = Modifier.padding(top = 4.dp, end = 4.dp)
                         ) {
                             Text(
@@ -847,10 +852,12 @@ fun Message(
 }
 
 @Composable
+
 fun ChatInputField(
     value: TextFieldValue,
     onValueChange: (TextFieldValue) -> Unit,
     onSendMessage: () -> Unit,
+    onSendAlternative: () -> Unit,
     onEditMessage: () -> Unit,
     mode: ChatMode,
     focusRequester: FocusRequester,
@@ -912,11 +919,34 @@ fun ChatInputField(
                         )
                     }
 
-                else -> IconButton(onClick = onSendMessage) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.send),
-                        contentDescription = stringResource(R.string.send_message)
-                    )
+                else -> {
+                    var offsetX by remember { mutableStateOf(0f) }
+                    var rotation by remember { mutableStateOf(0f) }
+                    IconButton(onClick = onSendMessage, modifier = Modifier
+                        .draggable(
+                            orientation = Orientation.Horizontal,
+                            state = rememberDraggableState { delta ->
+                                offsetX += delta
+                                if (offsetX <= -180f) rotation = 180f
+                                else if (offsetX >= 0f) rotation = 0f
+                                else rotation = offsetX
+                            },
+                            onDragStopped = {
+                                if (offsetX <= -180) {
+                                    onSendAlternative()
+                                }
+                                offsetX = 0f
+                                rotation = 0f
+                            }
+
+                        )
+                        .rotate(rotation)
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.send),
+                            contentDescription = stringResource(R.string.send_message)
+                        )
+                    }
                 }
             }
 
@@ -952,7 +982,7 @@ fun ChatPreview() {
                 message = MessageUi(0, content = "da", chatId = 0),
                 onClick = { /*TODO*/ },
                 onLongClick = { /*TODO*/ },
-                onMessageCommentsClicked = {  }
+                onMessageCommentsClicked = { }
             )
             Message(
                 message = MessageUi(
@@ -963,7 +993,7 @@ fun ChatPreview() {
                 ),
                 onClick = { /*TODO*/ },
                 onLongClick = { /*TODO*/ },
-                onMessageCommentsClicked = {  }
+                onMessageCommentsClicked = { }
             )
             Message(
                 message = MessageUi(
@@ -974,14 +1004,14 @@ fun ChatPreview() {
                 ),
                 onClick = { /*TODO*/ },
                 onLongClick = { /*TODO*/ },
-                onMessageCommentsClicked = {  }
+                onMessageCommentsClicked = { }
             )
         }
         Message(
             message = MessageUi(0, content = "da", tag = TagUi(0, "\uD83D\uDE00"), chatId = 0),
             onClick = { /*TODO*/ },
             onLongClick = { /*TODO*/ },
-            onMessageCommentsClicked = {  }
+            onMessageCommentsClicked = { }
         )
     }
 }

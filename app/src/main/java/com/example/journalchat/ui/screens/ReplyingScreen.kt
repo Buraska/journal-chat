@@ -201,6 +201,7 @@ fun ReplyingScreen(
                     onSendMessage = {
                         viewModel.sendMessage()
                     },
+                    onSendAlternative = {viewModel.sendMessage(false)},
                     onEditMessage = { viewModel.editMessageText() },
                     onReplyMessage = { viewModel.replyMessage() },
                     mode = chatState.mode,

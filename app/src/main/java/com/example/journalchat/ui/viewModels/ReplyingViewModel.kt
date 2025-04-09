@@ -81,7 +81,7 @@ class ReplyingViewModel(
         _chatState.update { currentState -> currentState.copy(filteringTag = selectedTag) }
     }
 
-    fun sendMessage() {
+    fun sendMessage(isPrimary: Boolean = true) {
         val text = chatState.value.input.text.trim()
 
         if (text == "") return
@@ -93,7 +93,7 @@ class ReplyingViewModel(
                     null,
                     messageId,
                     text,
-                    true,
+                    isPrimary,
                     LocalDateTime.now()
                 )
             )
